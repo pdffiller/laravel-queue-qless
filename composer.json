@@ -1,0 +1,40 @@
+{
+    "name": "pdffiller/laravel-queue-qless",
+    "keywords": [
+        "qless",
+        "queue",
+        "jobs",
+        "laravel"
+    ],
+    "homepage": "https://pdffiller.com/",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Serhii Osadchyi",
+            "email": "osadchyi.s@pdffiller.team"
+        }
+    ],
+    "require": {
+        "pdffiller/qless-php": "^3.1"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^3.7",
+        "phpunit/phpunit": ">=5.3 <8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LaravelQless\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LaravelQless\\Examples\\": "examples/",
+            "LaravelQless\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    }
+}
