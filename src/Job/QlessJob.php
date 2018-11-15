@@ -33,6 +33,11 @@ class QlessJob extends Job implements JobContract
      */
     protected $deleted = false;
 
+    /**
+     * @var bool
+     */
+    protected $released = false;
+
     public function __construct(BaseJob $job, string $payload, string $connectionName)
     {
         $this->job = $job;
@@ -48,6 +53,14 @@ class QlessJob extends Job implements JobContract
     public function getJobId()
     {
         return $this->job->getJid();
+    }
+
+    /**
+     * @return array
+     */
+    public function getData()
+    {
+        return $this->job->getData()->toArray();
     }
 
     /**
@@ -79,6 +92,7 @@ class QlessJob extends Job implements JobContract
     public function release($delay = 0)
     {
         //$this->delete();
+        $this->released = true;
         return \Queue::later($delay, $this->job->getKlass(), $this->job->getData(), $this->job->getQueue());
     }
 
@@ -104,13 +118,23 @@ class QlessJob extends Job implements JobContract
     }
 
     /**
+     * Determine if the job has been deleted.
+     *
+     * @return bool
+     */
+    public function isReleased()
+    {
+        return $this->released;
+    }
+
+    /**
      * Determine if the job has been deleted or released.
      *
      * @return bool
      */
     public function isDeletedOrReleased()
     {
-        //
+        return $this->isDeleted() || $this->isReleased();
     }
 
     /**

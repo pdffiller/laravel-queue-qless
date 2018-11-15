@@ -22,5 +22,6 @@ class ExampleJob implements QlessJob
                 'jobId' => $job->jid,
             ]
         );
+        $job->complete();
     }
 }

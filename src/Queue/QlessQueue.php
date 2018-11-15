@@ -3,6 +3,7 @@
 namespace LaravelQless\Queue;
 
 use Illuminate\Contracts\Queue\Queue as QueueContract;
+use Illuminate\Queue\InvalidPayloadException;
 use Illuminate\Queue\Queue;
 use LaravelQless\Job\QlessJob;
 use Qless\Client;
@@ -42,6 +43,7 @@ class QlessQueue extends Queue implements QueueContract
     {
         $this->connect = $connect;
         $this->defaultQueue = $config['queue'] ?? '';
+        $this->connectionName = $config['connection'] ?? '';
         $this->config = $config;
     }
 
@@ -107,7 +109,7 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function push($job, $data = '', $queueName = null)
     {
-        return $this->pushRaw($this->createPayload($job, $data), $queueName, $data);
+        return $this->pushRaw($this->makePayload($job, $data), $queueName);
     }
 
     /**
@@ -121,7 +123,7 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function later($delay, $job, $data = '', $queueName = null)
     {
-        return $this->pushRaw($this->createPayload($job, $data), $queueName, ['timeout' => $delay]);
+        return $this->pushRaw($this->makePayload($job, $data, ['timeout' => $delay]), $queueName, ['timeout' => $delay]);
     }
 
     /**
@@ -160,15 +162,38 @@ class QlessQueue extends Queue implements QueueContract
             return null;
         }
 
-        $payload = $this->createPayload($job->getKlass(), $job->getData());
-
-        \Log::error('test_job perform', ['test' => self::class]);
+        $payload = $this->makePayload($job->getKlass(), $job->getData());
 
         return new QlessJob(
             $job,
             $payload,
             $this->getConnectionName()
         );
+    }
+
+    /**
+     * @param string $job
+     * @param mixed|string $data
+     * @param array $options
+     * @return string
+     */
+    protected function makePayload(string $job, $data, $options = [])
+    {
+        $payload = json_encode([
+            'displayName' => explode('@', $job)[0],
+            'job' => $job,
+            'maxTries' => array_get($options, 'maxTries'),
+            'timeout' => array_get($options, 'timeout'),
+            'data' => $data,
+        ]);
+
+        if (JSON_ERROR_NONE !== json_last_error()) {
+            throw new InvalidPayloadException(
+                'Unable to JSON encode payload. Error code: '.json_last_error()
+            );
+        }
+
+        return $payload;
     }
 
     /**
