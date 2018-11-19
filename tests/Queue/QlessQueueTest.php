@@ -31,6 +31,8 @@ class QlessQueueTest extends TestCase
 
         $job = $queue->pop('test_job');
 
+        $job->fire();
+
         $this->assertInstanceOf(QlessJob::class, $job);
 
         $this->assertEquals($jobId, $job->getJobId());
