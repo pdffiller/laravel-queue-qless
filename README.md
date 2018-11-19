@@ -65,3 +65,13 @@ vendor/bin/phpunit
 ## Contribution
 
 You can contribute to this package by discovering bugs and opening issues. Please, add to which version of package you create pull request or issue. (e.g. [1.2] Fatal error on push job)
+
+## License
+
+Laravel Qless Queue driver is open-sourced software licensed under the MIT License.
+See the [`LICENSE.txt`](https://github.com/pdffiller/laravel-queue-qless/blob/master/LICENSE.txt) file for more.
+
+
+© 2018 PDFfiller<br>
+
+All rights reserved.
