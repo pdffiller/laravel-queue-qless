@@ -15,7 +15,8 @@
         }
     ],
     "require": {
-        "pdffiller/qless-php": "^3.1"
+        "ext-json": "*",
+        "pdffiller/qless-php": "3.3.0"
     },
     "require-dev": {
         "illuminate/events": "5.6.*|5.7.*",

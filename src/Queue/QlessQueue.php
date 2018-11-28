@@ -7,6 +7,7 @@ use Illuminate\Queue\InvalidPayloadException;
 use Illuminate\Queue\Queue;
 use LaravelQless\Job\QlessJob;
 use Qless\Client;
+use Qless\Topics\Topic;
 
 /**
  * Class QlessQueue
@@ -45,22 +46,6 @@ class QlessQueue extends Queue implements QueueContract
         $this->defaultQueue = $config['queue'] ?? '';
         $this->connectionName = $config['connection'] ?? '';
         $this->config = $config;
-    }
-
-    /**
-     * @return Client
-     */
-    private function getConnection(): Client
-    {
-        return $this->connect;
-    }
-
-    /**
-     * @return array
-     */
-    private function getConfig(): array
-    {
-        return $this->config;
     }
 
     /**
@@ -123,7 +108,11 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function later($delay, $job, $data = '', $queueName = null)
     {
-        return $this->pushRaw($this->makePayload($job, $data, ['timeout' => $delay]), $queueName, ['timeout' => $delay]);
+        return $this->pushRaw(
+            $this->makePayload($job, $data, ['timeout' => $delay]),
+            $queueName,
+            ['timeout' => $delay]
+        );
     }
 
     /**
@@ -168,6 +157,56 @@ class QlessQueue extends Queue implements QueueContract
             $job,
             $payload,
             $this->getConnectionName()
+        );
+    }
+
+    /**
+     * @param string $topic
+     * @param string|null $queueName
+     * @return bool
+     */
+    public function subscribe(string $topic, string $queueName = null): bool
+    {
+        $queueName = $queueName ?? $this->defaultQueue;
+
+        /** @var \Qless\Queues\Queue $queue */
+        $queue = $this->getConnection()->queues[$queueName];
+
+        return $queue->subscribe($topic);
+    }
+
+    /**
+     * @param string $topic
+     * @param string|null $queueName
+     * @return bool
+     */
+    public function unSubscribe(string $topic, string $queueName = null): bool
+    {
+        $queueName = $queueName ?? $this->defaultQueue;
+
+        /** @var \Qless\Queues\Queue $queue */
+        $queue = $this->getConnection()->queues[$queueName];
+
+        return $queue->unSubscribe($topic);
+    }
+
+    /**
+     * @param string $topic
+     * @param string $job
+     * @param array $data
+     * @param array $options
+     * @return array
+     */
+    public function pushToTopic(string $topic, string $job, array $data = [], array $options = []): array
+    {
+        $topic = new Topic($topic, $this->getConnection());
+
+        return $topic->put(
+            $job,
+            $data,
+            null,
+            $options['timeout'] ?? null,
+            $options['maxTries'] ?? null
         );
     }
 
@@ -217,5 +256,13 @@ class QlessQueue extends Queue implements QueueContract
         $this->connectionName = $name;
 
         return $this;
+    }
+
+    /**
+     * @return Client
+     */
+    private function getConnection(): Client
+    {
+        return $this->connect;
     }
 }
