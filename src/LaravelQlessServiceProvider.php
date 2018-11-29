@@ -3,8 +3,12 @@
 namespace LaravelQless;
 
 use Illuminate\Queue\QueueManager;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use LaravelQless\Queue\QlessConnector;
+use LaravelQless\Topics\QlessTopic;
+use Qless\Client;
+use Qless\Topics\Topic;
 
 /**
  * Class LaravelQlessServiceProvider
@@ -23,7 +27,7 @@ class LaravelQlessServiceProvider extends ServiceProvider
         $queue = $this->app['queue'];
 
         $queue->addConnector('qless', function () {
-            return new QlessConnector($this->app['events']);
+            return new QlessConnector;
         });
     }
 }
