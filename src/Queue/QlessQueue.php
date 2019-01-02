@@ -15,6 +15,8 @@ use Qless\Topics\Topic;
  */
 class QlessQueue extends Queue implements QueueContract
 {
+    private const WORKER_PREFIX = 'laravel_';
+
     /**
      * @var Client
      */
@@ -136,7 +138,7 @@ class QlessQueue extends Queue implements QueueContract
      * Pop the next job off of the queue.
      *
      * @param  string  $queueName
-     * @return \Illuminate\Contracts\Queue\Job|null
+     * @return \Illuminate\Contracts\Queue\Job|null|QlessJob
      */
     public function pop($queueName = null)
     {
@@ -145,7 +147,7 @@ class QlessQueue extends Queue implements QueueContract
         /** @var \Qless\Queues\Queue $queue */
         $queue = $this->getConnection()->queues[$queueName];
 
-        $job = $queue->pop();
+        $job = $queue->pop(self::WORKER_PREFIX . $this->connect->getWorkerName());
 
         if (!$job) {
             return null;

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Queue\Jobs\Job;
 use Illuminate\Contracts\Queue\Job as JobContract;
 use Qless\Jobs\BaseJob;
+use LaravelQless\Contracts\JobHandler;
 
 /**
  * Class QlessJob
@@ -38,11 +39,17 @@ class QlessJob extends Job implements JobContract
      */
     protected $released = false;
 
+    /**
+     * @var JobHandler
+     */
+    protected $handler;
+
     public function __construct(BaseJob $job, string $payload, string $connectionName)
     {
         $this->job = $job;
         $this->payload = $payload;
         $this->connectionName = $connectionName;
+        $this->handler = app()->make(JobHandler::class);
     }
 
     /**
@@ -80,7 +87,7 @@ class QlessJob extends Job implements JobContract
      */
     public function fire()
     {
-        $this->job->perform();
+        $this->handler->perform($this->job);
     }
 
     /**
@@ -91,9 +98,9 @@ class QlessJob extends Job implements JobContract
      */
     public function release($delay = 0)
     {
-        //$this->delete();
         $this->released = true;
-        return \Queue::later($delay, $this->job->getKlass(), $this->job->getData(), $this->job->getQueue());
+        return \Queue::connection($this->getConnectionName())
+            ->later($delay, $this->job->getKlass(), $this->job->getData(), $this->job->getQueue());
     }
 
     /**
