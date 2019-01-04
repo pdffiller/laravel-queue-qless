@@ -3,12 +3,10 @@
 namespace LaravelQless;
 
 use Illuminate\Queue\QueueManager;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
+use LaravelQless\Contracts\JobHandler;
+use LaravelQless\Handler\DefaultHandler;
 use LaravelQless\Queue\QlessConnector;
-use LaravelQless\Topics\QlessTopic;
-use Qless\Client;
-use Qless\Topics\Topic;
 
 /**
  * Class LaravelQlessServiceProvider
@@ -29,5 +27,7 @@ class LaravelQlessServiceProvider extends ServiceProvider
         $queue->addConnector('qless', function () {
             return new QlessConnector;
         });
+        
+        $this->app->bindif(JobHandler::class, DefaultHandler::class);
     }
 }

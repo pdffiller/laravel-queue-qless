@@ -18,7 +18,7 @@ Setup connection in `config/queue.php`
         // ...
         'qless' => [
             'driver' => 'qless',
-            'connection' => 'qless',
+            'redis_connection' => 'qless',
             'queue' => 'default',
         ],
         // ...    
@@ -85,6 +85,56 @@ Than you can put job to all subscribers.
 
 ```
 
+### Custom Handler
+Job Handler helps you to create a custom route for jobs.
+
+Custom Handler example:
+
+```php
+
+    class CustomHandler implements JobHandler
+    {
+        public function perform(BaseJob $job): void
+        {
+            if ($job->getQueue() === 'queue_name') { // by queue
+                (new QueueNameJob)->perform($job);
+                return;
+            }
+            
+            if ($job->getData()['option_name'] === 'value') { // by payload
+                (new OptionNameJob)->perform($job);
+                return;
+            }
+            
+            if (in_array('tag_name', $job->getTags())) { // by tag
+                (new TagNameJob)->perform($job);
+                return;
+            }
+            
+            // other
+            
+            $job->perform(); // Default
+        }
+    }
+    
+```
+
+You must add to a service provider.
+
+```php
+
+    public function boot()
+    {
+        // other code
+
+        $this->app->bind(JobHandler::class, CustomHandler::class);
+        
+        // other code
+    }
+
+```
+
+
 ### Recurring Jobs
 Sometimes it's not enough simply to schedule one job, but you want to run jobs regularly.
 In particular, maybe you have some batch operation that needs to get run once an hour and you don't care what
@@ -117,6 +167,6 @@ Laravel Qless Queue driver is open-sourced software licensed under the MIT Licen
 See the [`LICENSE.txt`](https://github.com/pdffiller/laravel-queue-qless/blob/master/LICENSE.txt) file for more.
 
 
-© 2018 PDFfiller<br>
+© 2018-2019 PDFfiller<br>
 
 All rights reserved.

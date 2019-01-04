@@ -2,6 +2,7 @@
 
 namespace LaravelQless\Tests\Queue;
 
+use LaravelQless\Contracts\JobHandler;
 use Orchestra\Testbench\TestCase;
 use Illuminate\Queue\Connectors\ConnectorInterface;
 use LaravelQless\Queue\QlessConnector;
@@ -35,5 +36,12 @@ class QlessConnectorTest extends TestCase
             'host' => REDIS_HOST,
             'port' => REDIS_PORT,
         ]);
+    }
+
+    protected function getApplicationProviders($app)
+    {
+        $app->bindIf(JobHandler::class, CustomHandler::class);
+
+        return $app['config']['app.providers'];
     }
 }
