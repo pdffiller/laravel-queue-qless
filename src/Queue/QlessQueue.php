@@ -16,6 +16,8 @@ use Qless\Topics\Topic;
  */
 class QlessQueue extends Queue implements QueueContract
 {
+    public const JOB_OPTIONS_KEY = '__QLESS_OPTIONS';
+
     private const WORKER_PREFIX = 'laravel_';
 
     /**
@@ -73,12 +75,19 @@ class QlessQueue extends Queue implements QueueContract
 
         $queue = $this->getConnection()->queues[$queueName];
 
+        $qlessOptions = $payloadData['data'][self::JOB_OPTIONS_KEY] ?? [];
+
+        $options = array_merge($qlessOptions, $options);
+
         return $queue->put(
             $payloadData['job'],
             $payloadData['data'],
-            null,
-            $payloadData['timeout'],
-            $payloadData['maxTries']
+            $options['jid'] ?? null,
+            $options['delay'] ?? null,
+            $options['retries'] ?? null,
+            $options['priority'] ?? null,
+            $options['tags'] ?? null,
+            $options['depends'] ?? null
         );
     }
 
@@ -106,10 +115,13 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function later($delay, $job, $data = '', $queueName = null)
     {
+        $options = $data[self::JOB_OPTIONS_KEY] ?? [];
+        $options = array_merge($options, ['timeout' => $delay]);
+
         return $this->pushRaw(
-            $this->makePayload($job, $data, ['timeout' => $delay]),
+            $this->makePayload($job, $data, $options),
             $queueName,
-            ['timeout' => $delay]
+            $options
         );
     }
 
@@ -127,7 +139,20 @@ class QlessQueue extends Queue implements QueueContract
         /** @var \Qless\Queues\Queue $queue */
         $queue = $this->getConnection()->queues[$queueName];
 
-        return $queue->recur($job, $data, $interval);
+        $options = $data[self::JOB_OPTIONS_KEY] ?? [];
+        $options = array_merge($options, ['interval' => $interval]);
+
+        return $queue->recur(
+            $job,
+            $data,
+            $options['interval'],
+            $options['offset'] ?? null,
+            $options['jid'] ?? null,
+            $options['retries'] ?? null,
+            $options['priority'] ?? null,
+            $options['backlog'] ?? null,
+            $options['tags'] ?? null
+        );
     }
 
     /**
@@ -199,12 +224,18 @@ class QlessQueue extends Queue implements QueueContract
     {
         $topic = new Topic($topicName, $this->getConnection());
 
+        $qlessOptions = $payloadData['data'][self::JOB_OPTIONS_KEY] ?? [];
+        $options = array_merge($qlessOptions, $options);
+
         return $topic->put(
             $job,
             $data,
-            null,
-            $options['timeout'] ?? null,
-            $options['maxTries'] ?? null
+            $options['jid'] ?? null,
+            $options['delay'] ?? null,
+            $options['retries'] ?? null,
+            $options['priority'] ?? null,
+            $options['tags'] ?? null,
+            $options['depends'] ?? null
         );
     }
 
@@ -216,17 +247,18 @@ class QlessQueue extends Queue implements QueueContract
      */
     protected function makePayload(string $job, $data, $options = []): string
     {
+        $qlessOptions = $data[self::JOB_OPTIONS_KEY] ?? [];
+        $data[self::JOB_OPTIONS_KEY] = array_merge($qlessOptions, $options);
+
         $payload = json_encode([
             'displayName' => explode('@', $job)[0],
             'job' => $job,
-            'maxTries' => array_get($options, 'maxTries'),
-            'timeout' => array_get($options, 'timeout'),
             'data' => $data,
         ]);
 
         if (JSON_ERROR_NONE !== json_last_error()) {
             throw new InvalidPayloadException(
-                'Unable to JSON encode payload. Error code: '.json_last_error()
+                'Unable to JSON encode payload. Error code: ' . json_last_error()
             );
         }
 

@@ -13,6 +13,10 @@ class Job implements QlessJob
             $job->getData()['classHandler'] = self::class;
         }
 
+        if ($job->getTags()) {
+            $job->getData()['tags'] = $job->getTags();
+        }
+
         $job->complete();
     }
 }
