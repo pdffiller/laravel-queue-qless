@@ -3,8 +3,11 @@
 namespace LaravelQless\Job;
 
 use Carbon\Carbon;
+use Illuminate\Container\Container;
 use Illuminate\Queue\Jobs\Job;
 use Illuminate\Contracts\Queue\Job as JobContract;
+use Illuminate\Queue\ManuallyFailedException;
+use LaravelQless\Queue\QlessQueue;
 use Qless\Jobs\BaseJob;
 use LaravelQless\Contracts\JobHandler;
 
@@ -20,36 +23,41 @@ class QlessJob extends Job implements JobContract
     protected $job;
 
     /**
+     * @var QlessQueue
+     */
+    protected $qlessQueue;
+
+    /**
      * @var string
      */
     protected $payload;
-
-    /**
-     * @var string
-     */
-    protected $connectionName;
-
-    /**
-     * @var bool
-     */
-    protected $deleted = false;
-
-    /**
-     * @var bool
-     */
-    protected $released = false;
 
     /**
      * @var JobHandler
      */
     protected $handler;
 
-    public function __construct(BaseJob $job, string $payload, string $connectionName)
-    {
+    /**
+     * QlessJob constructor.
+     * @param Container $container
+     * @param QlessQueue $qlessQueue
+     * @param JobHandler $handler
+     * @param BaseJob $job
+     * @param string $payload
+     */
+    public function __construct(
+        Container $container,
+        QlessQueue $qlessQueue,
+        JobHandler $handler,
+        BaseJob $job,
+        string $payload
+    ) {
+        $this->container = $container;
+        $this->qlessQueue = $qlessQueue;
         $this->job = $job;
         $this->payload = $payload;
-        $this->connectionName = $connectionName;
-        $this->handler = app()->make(JobHandler::class);
+        $this->connectionName = $qlessQueue->getConnectionName();
+        $this->handler = $handler;
     }
 
     /**
@@ -88,6 +96,10 @@ class QlessJob extends Job implements JobContract
     public function fire()
     {
         $this->handler->perform($this->job);
+
+        if ($this->job->failed) {
+            $this->failed(new ManuallyFailedException());
+        }
     }
 
     /**
@@ -99,8 +111,7 @@ class QlessJob extends Job implements JobContract
     public function release($delay = 0)
     {
         $this->released = true;
-        return \Queue::connection($this->getConnectionName())
-            ->later($delay, $this->job->getKlass(), $this->job->getData(), $this->job->getQueue());
+        return $this->qlessQueue->later($delay, $this->job->getKlass(), $this->job->getData(), $this->job->getQueue());
     }
 
     /**
@@ -115,36 +126,6 @@ class QlessJob extends Job implements JobContract
     }
 
     /**
-     * Determine if the job has been deleted.
-     *
-     * @return bool
-     */
-    public function isDeleted()
-    {
-        return $this->deleted;
-    }
-
-    /**
-     * Determine if the job has been deleted.
-     *
-     * @return bool
-     */
-    public function isReleased()
-    {
-        return $this->released;
-    }
-
-    /**
-     * Determine if the job has been deleted or released.
-     *
-     * @return bool
-     */
-    public function isDeletedOrReleased()
-    {
-        return $this->isDeleted() || $this->isReleased();
-    }
-
-    /**
      * Get the number of times the job has been attempted.
      *
      * @return int
@@ -152,17 +133,6 @@ class QlessJob extends Job implements JobContract
     public function attempts()
     {
         return $this->job->getRemaining();
-    }
-
-    /**
-     * Process an exception that caused the job to fail.
-     *
-     * @param  \Throwable  $e
-     * @return void
-     */
-    public function failed($e)
-    {
-        $this->job->fail($e->getCode(), $e->getMessage());
     }
 
     /**
@@ -203,28 +173,6 @@ class QlessJob extends Job implements JobContract
     public function getName()
     {
         return $this->job->getKlass();
-    }
-
-    /**
-     * Get the resolved name of the queued job class.
-     *
-     * Resolves the name of "wrapped" jobs such as class-based handlers.
-     *
-     * @return string
-     */
-    public function resolveName()
-    {
-        return $this->job->getKlass(); // ??
-    }
-
-    /**
-     * Get the name of the connection the job belongs to.
-     *
-     * @return string
-     */
-    public function getConnectionName()
-    {
-        return $this->connectionName;
     }
 
     /**
