@@ -5,6 +5,7 @@ namespace LaravelQless\Queue;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\InvalidPayloadException;
 use Illuminate\Queue\Queue;
+use LaravelQless\Contracts\JobHandler;
 use LaravelQless\Job\QlessJob;
 use Qless\Client;
 use Qless\Topics\Topic;
@@ -23,19 +24,14 @@ class QlessQueue extends Queue implements QueueContract
     private $connect;
 
     /**
+     * @var string
+     */
+    private $defaultQueue;
+
+    /**
      * @var array
      */
     private $config;
-
-    /**
-     * @var string
-     */
-    protected $connectionName;
-
-    /**
-     * @var string
-     */
-    protected $defaultQueue;
 
     /**
      * QlessQueue constructor.
@@ -45,7 +41,7 @@ class QlessQueue extends Queue implements QueueContract
     public function __construct(Client $connect, array $config)
     {
         $this->connect = $connect;
-        $this->defaultQueue = $config['queue'] ?? '';
+        $this->defaultQueue = $config['queue'] ?? null;
         $this->connectionName = $config['connection'] ?? '';
         $this->config = $config;
     }
@@ -56,7 +52,7 @@ class QlessQueue extends Queue implements QueueContract
      * @param  string  $queue
      * @return int
      */
-    public function size($queue = null)
+    public function size($queue = null): int
     {
         return $this->getConnection()->length($queue);
     }
@@ -126,7 +122,7 @@ class QlessQueue extends Queue implements QueueContract
      * @param string $queueName
      * @return string
      */
-    public function recur(int $interval, string $job, array $data, ?string $queueName = null)
+    public function recur(int $interval, string $job, array $data, ?string $queueName = null): string
     {
         /** @var \Qless\Queues\Queue $queue */
         $queue = $this->getConnection()->queues[$queueName];
@@ -142,8 +138,6 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function pop($queueName = null)
     {
-        $queueName = $queueName ?? $this->defaultQueue;
-
         /** @var \Qless\Queues\Queue $queue */
         $queue = $this->getConnection()->queues[$queueName];
 
@@ -156,9 +150,11 @@ class QlessQueue extends Queue implements QueueContract
         $payload = $this->makePayload($job->getKlass(), $job->getData());
 
         return new QlessJob(
+            $this->container,
+            $this,
+            app()->make(JobHandler::class),
             $job,
-            $payload,
-            $this->getConnectionName()
+            $payload
         );
     }
 
@@ -193,15 +189,15 @@ class QlessQueue extends Queue implements QueueContract
     }
 
     /**
-     * @param string $topic
+     * @param string $topicName
      * @param string $job
      * @param array $data
      * @param array $options
-     * @return array
+     * @return array|string
      */
-    public function pushToTopic(string $topic, string $job, array $data = [], array $options = []): array
+    public function pushToTopic(string $topicName, string $job, array $data = [], array $options = []): array
     {
-        $topic = new Topic($topic, $this->getConnection());
+        $topic = new Topic($topicName, $this->getConnection());
 
         return $topic->put(
             $job,
@@ -218,7 +214,7 @@ class QlessQueue extends Queue implements QueueContract
      * @param array $options
      * @return string
      */
-    protected function makePayload(string $job, $data, $options = [])
+    protected function makePayload(string $job, $data, $options = []): string
     {
         $payload = json_encode([
             'displayName' => explode('@', $job)[0],
@@ -235,29 +231,6 @@ class QlessQueue extends Queue implements QueueContract
         }
 
         return $payload;
-    }
-
-    /**
-     * Get the connection name for the queue.
-     *
-     * @return string
-     */
-    public function getConnectionName(): string
-    {
-        return $this->connectionName;
-    }
-
-    /**
-     * Set the connection name for the queue.
-     *
-     * @param  string  $name
-     * @return $this
-     */
-    public function setConnectionName($name): self
-    {
-        $this->connectionName = $name;
-
-        return $this;
     }
 
     /**
