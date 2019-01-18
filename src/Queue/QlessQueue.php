@@ -236,7 +236,7 @@ class QlessQueue extends Queue implements QueueContract
     /**
      * @return Client
      */
-    private function getConnection(): Client
+    public function getConnection(): Client
     {
         return $this->connect;
     }
