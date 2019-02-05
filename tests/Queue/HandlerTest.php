@@ -30,7 +30,8 @@ class HandlerTest extends TestCase
                 'port' => REDIS_PORT,
             ]),
             [
-                'queue' => 'test_qless_queue'
+                'queue' => 'test_qless_queue',
+                'connection' => 'qless',
             ]
         );
 

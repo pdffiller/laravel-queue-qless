@@ -101,7 +101,7 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function push($job, $data = '', $queueName = null)
     {
-        return $this->pushRaw($this->makePayload($job, $data), $queueName);
+        return $this->pushRaw($this->makePayload($job, (array) $data), $queueName);
     }
 
     /**
@@ -240,19 +240,26 @@ class QlessQueue extends Queue implements QueueContract
     }
 
     /**
-     * @param string $job
+     * @param string|object $job
      * @param mixed|string $data
      * @param array $options
      * @return string
      */
-    protected function makePayload(string $job, $data, $options = []): string
+    protected function makePayload($job, $data = [], $options = []): string
     {
+        if (is_object($job)) {
+            $displayName = get_class($job);
+            $data = array_merge($job->toArray(), $data);
+        } else {
+            $displayName = explode('@', $job)[0];
+        }
+
         $qlessOptions = $data[self::JOB_OPTIONS_KEY] ?? [];
         $data[self::JOB_OPTIONS_KEY] = array_merge($qlessOptions, $options);
 
         $payload = json_encode([
-            'displayName' => explode('@', $job)[0],
-            'job' => $job,
+            'displayName' => $displayName,
+            'job' => is_string($job) ? $job : $displayName,
             'data' => $data,
         ]);
 

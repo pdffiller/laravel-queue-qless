@@ -2,12 +2,11 @@
 
 namespace LaravelQless\Examples\Job;
 
-use LaravelQless\Contracts\QlessJob;
+use LaravelQless\Job\AbstractJob;
 use Qless\Jobs\BaseJob;
 
-class ExampleJob implements QlessJob
+class ExampleJob extends AbstractJob
 {
-
     /**
      * Execute the job.
      *

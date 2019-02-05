@@ -2,16 +2,18 @@
 
 namespace LaravelQless\Tests\Queue;
 
+use Illuminate\Queue\QueueManager;
 use LaravelQless\Contracts\JobHandler;
 use LaravelQless\Handler\DefaultHandler;
 use LaravelQless\Job\QlessJob;
+use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
 use Orchestra\Testbench\TestCase;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 use Qless\Client;
 
-class QlessQueueTest extends TestCase
+class QueueTest extends TestCase
 {
     /**
      * @throws \ReflectionException
@@ -173,6 +175,30 @@ class QlessQueueTest extends TestCase
         $this->assertEquals(['tag1', 'tag_second'], $job->getData()['tags']);
     }
 
+    public function testDispatchJob()
+    {
+        $this->setEnv();
+
+        $queueName = str_random();
+
+        $job = new Job(['dispatch' => 'work']);
+
+        $dispatch = dispatch($job)->onQueue($queueName)->onConnection('qless');
+        unset($dispatch);
+
+        $queue = $this->getQueue();
+
+        $job = $queue->pop($queueName);
+
+        $this->assertNotEmpty($job);
+
+        $job->fire();
+
+        $data = $job->getData();
+
+        $this->assertEquals('work', $data['dispatch']);
+    }
+
     protected function getQueue()
     {
         $queue = new QlessQueue(
@@ -181,13 +207,44 @@ class QlessQueueTest extends TestCase
                 'port' => REDIS_PORT,
             ]),
             [
-                'queue' => 'test_qless_queue'
+                'queue' => 'test_qless_queue',
+                'connection' => 'qless',
             ]
         );
 
         $queue->setContainer($this->app);
 
         return $queue;
+    }
+
+
+    protected function setEnv()
+    {
+        $this->app['config']->set('queue.default', 'qless');
+        $qlessConfig = [
+            'driver' => 'qless',
+            'connection' => 'qless',
+            'queue' => 'default',
+            'redis_connection' => 'qless',
+        ];
+        $this->app['config']->set('queue.connections.qless', $qlessConfig);
+
+        $redisConfig = [
+            'host' => REDIS_HOST,
+            'password' => null,
+            'port' => REDIS_PORT,
+            'database' => 0,
+        ];
+
+        $this->app['config']->set('database.redis.qless', $redisConfig);
+
+        $queueManager = new QueueManager($this->app);
+        $queueManager->addConnector('qless', function () {
+            return new QlessConnector;
+        });
+        $queueManager->setDefaultDriver('qless');
+
+        $this->app['queue'] = $queueManager;
     }
 
     protected function getApplicationProviders($app)

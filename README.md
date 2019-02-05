@@ -31,7 +31,7 @@ Also you can set Qless queue as default in  `config/queue.php`
     'default' => env('QUEUE_DRIVER', 'qless'),
 ```
 
-And redis connection in `config/database.php`
+Redis connection in `config/database.php`
 
 ```php
     'redis' => [
@@ -47,6 +47,23 @@ And redis connection in `config/database.php`
         ],
         // ...
     ],
+```
+
+And add Laravel Qless service provider to app.php
+
+```php
+<?php
+
+return [
+    //...
+    'providers' => [
+        //...
+        /**
+         * Qless
+         */
+         LaravelQless\LaravelQlessServiceProvider::class,
+    ]
+];
 ```
 
 ## Usage
@@ -80,7 +97,7 @@ Than you can put job to all subscribers.
 /**
  * Put job to few queues
  */
-\Queue::pushToSubscriber('this.is.test', TestQless::class, ['test' => 'test']);
+\Queue::pushToTopic('this.is.test', TestQless::class, ['test' => 'test']);
 // Push job to queue1 and queue2, but not to queue3
 
 ```

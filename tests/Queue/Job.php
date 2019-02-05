@@ -2,10 +2,10 @@
 
 namespace LaravelQless\Tests\Queue;
 
-use LaravelQless\Contracts\QlessJob;
+use LaravelQless\Job\AbstractJob;
 use Qless\Jobs\BaseJob;
 
-class Job implements QlessJob
+class Job extends AbstractJob
 {
     public function perform(BaseJob $job)
     {
