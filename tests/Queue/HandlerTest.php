@@ -24,15 +24,20 @@ class HandlerTest extends TestCase
 
     protected function getQueue()
     {
-        return new QlessQueue(
+        $queue = new QlessQueue(
             new Client([
                 'host' => REDIS_HOST,
                 'port' => REDIS_PORT,
             ]),
             [
-                'queue' => 'test_qless_queue'
+                'queue' => 'test_qless_queue',
+                'connection' => 'qless',
             ]
         );
+
+        $queue->setContainer($this->app);
+
+        return $queue;
     }
 
     protected function getApplicationProviders($app)

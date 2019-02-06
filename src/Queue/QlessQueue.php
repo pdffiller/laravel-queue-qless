@@ -5,6 +5,7 @@ namespace LaravelQless\Queue;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\InvalidPayloadException;
 use Illuminate\Queue\Queue;
+use LaravelQless\Contracts\JobHandler;
 use LaravelQless\Job\QlessJob;
 use Qless\Client;
 use Qless\Topics\Topic;
@@ -15,6 +16,8 @@ use Qless\Topics\Topic;
  */
 class QlessQueue extends Queue implements QueueContract
 {
+    public const JOB_OPTIONS_KEY = '__QLESS_OPTIONS';
+
     private const WORKER_PREFIX = 'laravel_';
 
     /**
@@ -23,19 +26,14 @@ class QlessQueue extends Queue implements QueueContract
     private $connect;
 
     /**
+     * @var string
+     */
+    private $defaultQueue;
+
+    /**
      * @var array
      */
     private $config;
-
-    /**
-     * @var string
-     */
-    protected $connectionName;
-
-    /**
-     * @var string
-     */
-    protected $defaultQueue;
 
     /**
      * QlessQueue constructor.
@@ -45,7 +43,7 @@ class QlessQueue extends Queue implements QueueContract
     public function __construct(Client $connect, array $config)
     {
         $this->connect = $connect;
-        $this->defaultQueue = $config['queue'] ?? '';
+        $this->defaultQueue = $config['queue'] ?? null;
         $this->connectionName = $config['connection'] ?? '';
         $this->config = $config;
     }
@@ -56,7 +54,7 @@ class QlessQueue extends Queue implements QueueContract
      * @param  string  $queue
      * @return int
      */
-    public function size($queue = null)
+    public function size($queue = null): int
     {
         return $this->getConnection()->length($queue);
     }
@@ -77,12 +75,19 @@ class QlessQueue extends Queue implements QueueContract
 
         $queue = $this->getConnection()->queues[$queueName];
 
+        $qlessOptions = $payloadData['data'][self::JOB_OPTIONS_KEY] ?? [];
+
+        $options = array_merge($qlessOptions, $options);
+
         return $queue->put(
             $payloadData['job'],
             $payloadData['data'],
-            null,
-            $payloadData['timeout'],
-            $payloadData['maxTries']
+            $options['jid'] ?? null,
+            $options['delay'] ?? null,
+            $options['retries'] ?? null,
+            $options['priority'] ?? null,
+            $options['tags'] ?? null,
+            $options['depends'] ?? null
         );
     }
 
@@ -96,7 +101,7 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function push($job, $data = '', $queueName = null)
     {
-        return $this->pushRaw($this->makePayload($job, $data), $queueName);
+        return $this->pushRaw($this->makePayload($job, (array) $data), $queueName);
     }
 
     /**
@@ -110,10 +115,13 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function later($delay, $job, $data = '', $queueName = null)
     {
+        $options = $data[self::JOB_OPTIONS_KEY] ?? [];
+        $options = array_merge($options, ['timeout' => $delay]);
+
         return $this->pushRaw(
-            $this->makePayload($job, $data, ['timeout' => $delay]),
+            $this->makePayload($job, $data, $options),
             $queueName,
-            ['timeout' => $delay]
+            $options
         );
     }
 
@@ -126,12 +134,25 @@ class QlessQueue extends Queue implements QueueContract
      * @param string $queueName
      * @return string
      */
-    public function recur(int $interval, string $job, array $data, ?string $queueName = null)
+    public function recur(int $interval, string $job, array $data, ?string $queueName = null): string
     {
         /** @var \Qless\Queues\Queue $queue */
         $queue = $this->getConnection()->queues[$queueName];
 
-        return $queue->recur($job, $data, $interval);
+        $options = $data[self::JOB_OPTIONS_KEY] ?? [];
+        $options = array_merge($options, ['interval' => $interval]);
+
+        return $queue->recur(
+            $job,
+            $data,
+            $options['interval'],
+            $options['offset'] ?? null,
+            $options['jid'] ?? null,
+            $options['retries'] ?? null,
+            $options['priority'] ?? null,
+            $options['backlog'] ?? null,
+            $options['tags'] ?? null
+        );
     }
 
     /**
@@ -142,8 +163,6 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function pop($queueName = null)
     {
-        $queueName = $queueName ?? $this->defaultQueue;
-
         /** @var \Qless\Queues\Queue $queue */
         $queue = $this->getConnection()->queues[$queueName];
 
@@ -156,9 +175,11 @@ class QlessQueue extends Queue implements QueueContract
         $payload = $this->makePayload($job->getKlass(), $job->getData());
 
         return new QlessJob(
+            $this->container,
+            $this,
+            app()->make(JobHandler::class),
             $job,
-            $payload,
-            $this->getConnectionName()
+            $payload
         );
     }
 
@@ -193,44 +214,58 @@ class QlessQueue extends Queue implements QueueContract
     }
 
     /**
-     * @param string $topic
+     * @param string $topicName
      * @param string $job
      * @param array $data
      * @param array $options
-     * @return array
+     * @return array|string
      */
-    public function pushToTopic(string $topic, string $job, array $data = [], array $options = []): array
+    public function pushToTopic(string $topicName, string $job, array $data = [], array $options = []): array
     {
-        $topic = new Topic($topic, $this->getConnection());
+        $topic = new Topic($topicName, $this->getConnection());
+
+        $qlessOptions = $payloadData['data'][self::JOB_OPTIONS_KEY] ?? [];
+        $options = array_merge($qlessOptions, $options);
 
         return $topic->put(
             $job,
             $data,
-            null,
-            $options['timeout'] ?? null,
-            $options['maxTries'] ?? null
+            $options['jid'] ?? null,
+            $options['delay'] ?? null,
+            $options['retries'] ?? null,
+            $options['priority'] ?? null,
+            $options['tags'] ?? null,
+            $options['depends'] ?? null
         );
     }
 
     /**
-     * @param string $job
+     * @param string|object $job
      * @param mixed|string $data
      * @param array $options
      * @return string
      */
-    protected function makePayload(string $job, $data, $options = [])
+    protected function makePayload($job, $data = [], $options = []): string
     {
+        if (is_object($job)) {
+            $displayName = get_class($job);
+            $data = array_merge($job->toArray(), $data);
+        } else {
+            $displayName = explode('@', $job)[0];
+        }
+
+        $qlessOptions = $data[self::JOB_OPTIONS_KEY] ?? [];
+        $data[self::JOB_OPTIONS_KEY] = array_merge($qlessOptions, $options);
+
         $payload = json_encode([
-            'displayName' => explode('@', $job)[0],
-            'job' => $job,
-            'maxTries' => array_get($options, 'maxTries'),
-            'timeout' => array_get($options, 'timeout'),
+            'displayName' => $displayName,
+            'job' => is_string($job) ? $job : $displayName,
             'data' => $data,
         ]);
 
         if (JSON_ERROR_NONE !== json_last_error()) {
             throw new InvalidPayloadException(
-                'Unable to JSON encode payload. Error code: '.json_last_error()
+                'Unable to JSON encode payload. Error code: ' . json_last_error()
             );
         }
 
@@ -238,32 +273,9 @@ class QlessQueue extends Queue implements QueueContract
     }
 
     /**
-     * Get the connection name for the queue.
-     *
-     * @return string
-     */
-    public function getConnectionName(): string
-    {
-        return $this->connectionName;
-    }
-
-    /**
-     * Set the connection name for the queue.
-     *
-     * @param  string  $name
-     * @return $this
-     */
-    public function setConnectionName($name): self
-    {
-        $this->connectionName = $name;
-
-        return $this;
-    }
-
-    /**
      * @return Client
      */
-    private function getConnection(): Client
+    public function getConnection(): Client
     {
         return $this->connect;
     }

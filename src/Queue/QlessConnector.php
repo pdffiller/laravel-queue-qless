@@ -21,7 +21,7 @@ class QlessConnector implements ConnectorInterface
     */
     public function connect(array $config): QlessQueue
     {
-         $redisConnection = array_get($config, 'redis_connection', 'default');
+         $redisConnection = array_get($config, 'redis_connection', 'qless');
 
          $redisConfig = Config::get('database.redis.' . $redisConnection, []);
 

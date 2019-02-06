@@ -8,7 +8,7 @@ use Illuminate\Queue\Connectors\ConnectorInterface;
 use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
 
-class QlessConnectorTest extends TestCase
+class ConnectorTest extends TestCase
 {
     public function testShouldImplementConnectorInterface()
     {
@@ -20,7 +20,8 @@ class QlessConnectorTest extends TestCase
     {
         $connector = new QlessConnector();
         $queue = $connector->connect([
-            'redis_connection' => 'qless'
+            'redis_connection' => 'qless',
+            'connection' => 'qless',
         ]);
         $this->assertInstanceOf(QlessQueue::class, $queue);
     }

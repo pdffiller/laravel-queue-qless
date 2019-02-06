@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use LaravelQless\LaravelQlessServiceProvider;
 use LaravelQless\Queue\QlessConnector;
-use PHPUnit\Framework\TestCase;
+use Orchestra\Testbench\TestCase;
 
-class LaravelQlessServiceProviderTest extends TestCase
+class ServiceProviderTest extends TestCase
 {
     public function testShouldSubClassServiceProviderClass()
     {
@@ -30,7 +30,8 @@ class LaravelQlessServiceProviderTest extends TestCase
                 $this->assertInstanceOf(QlessConnector::class, $connector);
             })
         ;
-        $app = Container::getInstance();
+
+        $app = $this->app;
         $app['queue'] = $queueMock;
 
         $app['events'] = $this->createMock(Event::class);

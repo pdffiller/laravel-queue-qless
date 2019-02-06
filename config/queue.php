@@ -1,10 +1,12 @@
 <?php
 
 return [
+    'default' => 'qless',
+
     'connections' => [
         'qless' => [
             'driver' => 'qless',
-            'connection' => 'default',
+            'connection' => 'qless',
             'queue' => 'default',
             'redis_connection' => 'qless',
         ],
