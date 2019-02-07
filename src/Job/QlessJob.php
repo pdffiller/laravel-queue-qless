@@ -148,17 +148,17 @@ class QlessJob extends Job implements JobContract
     /**
      * Get the number of seconds the job can run.
      *
-     * @return int|null
+     * @return int
      */
     public function timeout()
     {
-        return $this->job->ttl();
+        return (int) $this->job->ttl();
     }
 
     /**
      * Get the timestamp indicating when the job should timeout.
      *
-     * @return int|null
+     * @return int
      */
     public function timeoutAt()
     {
