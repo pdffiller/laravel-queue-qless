@@ -6,8 +6,10 @@ use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\InvalidPayloadException;
 use Illuminate\Queue\Queue;
 use LaravelQless\Contracts\JobHandler;
+use LaravelQless\Job\AbstractJob;
 use LaravelQless\Job\QlessJob;
 use Qless\Client;
+use Qless\Jobs\BaseJob;
 use Qless\Topics\Topic;
 
 /**
@@ -56,7 +58,7 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function size($queue = null): int
     {
-        return $this->getConnection()->length($queue);
+        return $this->getConnection()->length($queue ?? '');
     }
 
     /**
@@ -159,13 +161,14 @@ class QlessQueue extends Queue implements QueueContract
      * Pop the next job off of the queue.
      *
      * @param  string  $queueName
-     * @return \Illuminate\Contracts\Queue\Job|null|QlessJob
+     * @return QlessJob|null
      */
     public function pop($queueName = null)
     {
         /** @var \Qless\Queues\Queue $queue */
         $queue = $this->getConnection()->queues[$queueName];
 
+        /** @var BaseJob $job */
         $job = $queue->pop(self::WORKER_PREFIX . $this->connect->getWorkerName());
 
         if (!$job) {
@@ -220,7 +223,7 @@ class QlessQueue extends Queue implements QueueContract
      * @param array $options
      * @return array|string
      */
-    public function pushToTopic(string $topicName, string $job, array $data = [], array $options = []): array
+    public function pushToTopic(string $topicName, string $job, array $data = [], array $options = [])
     {
         $topic = new Topic($topicName, $this->getConnection());
 
@@ -247,10 +250,15 @@ class QlessQueue extends Queue implements QueueContract
      */
     protected function makePayload($job, $data = [], $options = []): string
     {
-        if (is_object($job)) {
+        $displayName = '';
+        if ($job instanceof AbstractJob) {
             $displayName = get_class($job);
             $data = array_merge($job->toArray(), $data);
-        } else {
+        } elseif (is_object($job)) {
+            $displayName = get_class($job);
+        }
+
+        if (is_string($job)) {
             $displayName = explode('@', $job)[0];
         }
 
