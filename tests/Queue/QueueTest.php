@@ -199,6 +199,27 @@ class QueueTest extends TestCase
         $this->assertEquals('work', $data['dispatch']);
     }
 
+    public function testDispatchNowJob()
+    {
+        $this->setEnv();
+
+        $queueName = str_random();
+
+        $dispatch = Job::dispatchNow(['dispatchNow' => 'work_as_sync'])
+            ->onQueue($queueName)
+            ->onConnection('qless');
+
+        unset($dispatch);
+
+        $queue = $this->getQueue();
+
+        $job = $queue->pop($queueName);
+
+        $this->assertEquals($_SERVER['payload']['dispatchNow'], 'work_as_sync');
+
+        $this->assertNull($job);
+    }
+
     protected function getQueue()
     {
         $queue = new QlessQueue(
