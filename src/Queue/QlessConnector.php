@@ -4,6 +4,8 @@ namespace LaravelQless\Queue;
 
 use Illuminate\Queue\Connectors\ConnectorInterface;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Queue\Events\WorkerStopping;
 use Qless\Client;
 
 /**
@@ -12,6 +14,20 @@ use Qless\Client;
  */
 class QlessConnector implements ConnectorInterface
 {
+    /**
+     * @var Dispatcher
+     */
+    private $dispatcher;
+
+    /**
+     * QlessConnector constructor.
+     * @param Dispatcher $dispatcher
+     */
+    public function __construct(Dispatcher $dispatcher)
+    {
+        $this->dispatcher = $dispatcher;
+    }
+
     /**
     * Establish a queue connection.
     *
@@ -25,9 +41,15 @@ class QlessConnector implements ConnectorInterface
 
          $redisConfig = Config::get('database.redis.' . $redisConnection, []);
 
-         return new QlessQueue(
+         $qlessQueue = new QlessQueue(
              new Client($redisConfig),
              $config
          );
+
+        $this->dispatcher->listen(WorkerStopping::class, function () use ($qlessQueue) {
+            $qlessQueue->getConnection()->getWorkers()->remove($qlessQueue->getConnection()->getWorkerName());
+        });
+
+         return $qlessQueue;
     }
 }

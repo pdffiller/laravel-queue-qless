@@ -25,7 +25,7 @@ class LaravelQlessServiceProvider extends ServiceProvider
         $queue = $this->app['queue'];
 
         $queue->addConnector('qless', function () {
-            return new QlessConnector;
+            return new QlessConnector($this->app['events']);
         });
         
         $this->app->bindif(JobHandler::class, DefaultHandler::class);
