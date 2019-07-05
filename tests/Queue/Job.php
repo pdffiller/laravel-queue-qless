@@ -17,6 +17,8 @@ class Job extends AbstractJob
             $job->getData()['tags'] = $job->getTags();
         }
 
+        $_SERVER['payload'] = $job->getData();
+
         $job->complete();
     }
 }
