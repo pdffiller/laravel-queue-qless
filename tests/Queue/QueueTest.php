@@ -2,15 +2,16 @@
 
 namespace LaravelQless\Tests\Queue;
 
+use Illuminate\Contracts\Queue\Queue as QueueContract;
+use Illuminate\Queue\Queue;
 use Illuminate\Queue\QueueManager;
+use Illuminate\Support\Str;
 use LaravelQless\Contracts\JobHandler;
 use LaravelQless\Handler\DefaultHandler;
 use LaravelQless\Job\QlessJob;
 use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
 use Orchestra\Testbench\TestCase;
-use Illuminate\Contracts\Queue\Queue as QueueContract;
-use Illuminate\Queue\Queue;
 use Qless\Client;
 
 class QueueTest extends TestCase
@@ -40,7 +41,7 @@ class QueueTest extends TestCase
     {
         $queue = $this->getQueue();
 
-        $queueName = str_random(16);
+        $queueName = Str::random(16);
 
         $jobId = $queue->push(Job::class, ['firstKey' => 'firstValue'], $queueName);
 
@@ -66,7 +67,7 @@ class QueueTest extends TestCase
     {
         $queue = $this->getQueue();
 
-        $queuePrefix = str_random(4) . '_';
+        $queuePrefix = Str::random(4) . '_';
 
         for ($i = 1; $i<=3; $i++) {
             $queue->push(Job::class, ['firstKey' => 'firstValue'], $queuePrefix . $i);
@@ -102,7 +103,7 @@ class QueueTest extends TestCase
     {
         $queue = $this->getQueue();
 
-        $queuePrefix = str_random(4) . '_';
+        $queuePrefix = Str::random(4) . '_';
 
         for ($i = 1; $i<=2; $i++) {
             $queue->push(Job::class, ['firstKey' => 'firstValue'], $queuePrefix . $i);
@@ -130,7 +131,7 @@ class QueueTest extends TestCase
      */
     public function testSize()
     {
-        $queueName = str_random();
+        $queueName = Str::random();
 
         $queue = $this->getQueue();
 
@@ -152,9 +153,9 @@ class QueueTest extends TestCase
      */
     public function testJobOptions()
     {
-        $queueName = str_random();
+        $queueName = Str::random();
 
-        $jid = str_random(16);
+        $jid = Str::random(16);
 
         $queue = $this->getQueue();
 
@@ -179,7 +180,7 @@ class QueueTest extends TestCase
     {
         $this->setEnv();
 
-        $queueName = str_random();
+        $queueName = Str::random();
 
         $job = new Job(['dispatch' => 'work']);
 
@@ -203,7 +204,7 @@ class QueueTest extends TestCase
     {
         $this->setEnv();
 
-        $queueName = str_random();
+        $queueName = Str::random();
 
         $dispatch = Job::dispatchNow(['dispatchNow' => 'work_as_sync'])
             ->onQueue($queueName)
