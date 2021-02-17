@@ -2,6 +2,7 @@ sudo: false
 
 language: php
 php:
+  - '7.4'
   - '7.3'
   - '7.2'
   - '7.1'
@@ -72,19 +73,19 @@ notifications:
 jobs:
   include:
     - stage: Static Code Analysis
-      php: 7.2
+      php: 7.4
       env: PHPStan
       script:
         - ./vendor/bin/phpstan analyse src/ --level max
     - stage: Static Code Analysis
-      php: 7.2
+      php: 7.4
       env: PHP_CodeSniffer
       before_script:
         - phpenv config-rm xdebug.ini || true
       script:
         - ./vendor/bin/phpcs src
     - stage: Mutation Testing
-      php: 7.2
+      php: 7.4
       script:
         - ./vendor/bin/phpunit --disallow-test-output
         - $HOME/bin/infection --threads=4

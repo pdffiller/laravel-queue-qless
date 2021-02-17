@@ -3,6 +3,7 @@
 namespace LaravelQless\Queue;
 
 use Illuminate\Queue\Connectors\ConnectorInterface;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
 use Qless\Client;
 
@@ -21,7 +22,7 @@ class QlessConnector implements ConnectorInterface
     */
     public function connect(array $config): QlessQueue
     {
-         $redisConnection = array_get($config, 'redis_connection', 'qless');
+         $redisConnection = Arr::get($config, 'redis_connection', 'qless');
 
          $redisConfig = Config::get('database.redis.' . $redisConnection, []);
 
