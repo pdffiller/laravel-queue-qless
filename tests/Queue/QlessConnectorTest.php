@@ -2,6 +2,7 @@
 
 namespace LaravelQless\Tests\Queue;
 
+use LaravelQless\LaravelQlessServiceProvider;
 use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
 use PHPUnit\Framework\TestCase;
@@ -62,9 +63,13 @@ class QlessConnectorTest extends TestCase
 
     protected function setEnv(array $redisConfig)
     {
-        $this->app['config']->set('queue.default', 'qless');
-        $this->app['config']->set('queue.connections.qless', self::QLESS_CONFIG);
-        $this->app['config']->set('database.redis.qless', $redisConfig);
+        $app = [];
+        $app['config']->set('queue.default', 'qless');
+        $app['config']->set('queue.connections.qless', self::QLESS_CONFIG);
+        $app['config']->set('database.redis.qless', $redisConfig);
+
+        $providerMock = new LaravelQlessServiceProvider($app);
+        $providerMock->boot();
     }
 
     protected function compareConfigs(array $expectedConfig, Config $resultingConfig)
