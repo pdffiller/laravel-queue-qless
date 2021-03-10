@@ -63,7 +63,9 @@ class QlessConnectorTest extends TestCase
 
     protected function setEnv(array $redisConfig)
     {
-        $app = [];
+        $app = [
+            'config' => new Config(),
+        ];
         $app['config']->set('queue.default', 'qless');
         $app['config']->set('queue.connections.qless', self::QLESS_CONFIG);
         $app['config']->set('database.redis.qless', $redisConfig);
