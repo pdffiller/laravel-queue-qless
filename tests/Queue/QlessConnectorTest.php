@@ -63,13 +63,13 @@ class QlessConnectorTest extends TestCase
 
     protected function setEnv(array $redisConfig)
     {
-        $app = [
-            'config' => new Config(
-                self::QLESS_CONFIG
-            ),
-        ];
-        $providerMock = new LaravelQlessServiceProvider($app);
-        $providerMock->boot();
+//        $app = [
+//            'config' => new Config(
+//                self::QLESS_CONFIG
+//            ),
+//        ];
+//        $providerMock = new LaravelQlessServiceProvider($app);
+//        $providerMock->boot();
     }
 
     protected function compareConfigs(array $expectedConfig, Config $resultingConfig)
