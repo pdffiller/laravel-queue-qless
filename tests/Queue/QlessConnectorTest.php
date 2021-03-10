@@ -2,16 +2,23 @@
 
 namespace LaravelQless\Tests\Queue;
 
-use LaravelQless\LaravelQlessServiceProvider;
 use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
-use PHPUnit\Framework\TestCase;
+use Orchestra\Testbench\TestCase;
 use Qless\Config;
 
 class QlessConnectorTest extends TestCase
 {
 
     #region Test data
+
+    private const QUEUE_CONFIG = [
+        'driver' => 'qless',
+        'connection' => 'qless',
+        'queue' => 'default',
+        'redis_connection' => 'qless',
+    ];
+
     private const QLESS_CONFIG = [
         'config' =>
             [
@@ -78,18 +85,37 @@ class QlessConnectorTest extends TestCase
 
     #endregion
 
-    public function setUp(): void
+    protected function setEnv(array $redisConfig)
     {
-        parent::setUp();
+        $this->app['config']->set('queue.default', 'qless');
+        $qlessConfig = [
+            'driver' => 'qless',
+            'connection' => 'qless',
+            'queue' => 'default',
+            'redis_connection' => 'qless',
+        ];
+        $this->app['config']->set('queue.connections.qless', $qlessConfig);
+
+        $this->app['config']->set('database.redis.qless', $redisConfig);
+
+        $queueManager = new QueueManager($this->app);
+        $queueManager->addConnector('qless', function () {
+            return new QlessConnector;
+        });
+        $queueManager->setDefaultDriver('qless');
+
+        $this->app['queue'] = $queueManager;
     }
 
     protected function getConfig(array $redisConfig)
     {
-        $config = self::QLESS_CONFIG;
-        $config['database']['redis']['qless'] = $redisConfig;
-
-        config($config['config']);
-        return $config['config'];
+        return [
+            'database' => [
+                'redis' => [
+                    'qless' => $redisConfig
+                ]
+            ]
+        ];
     }
 
     protected function compareConfigs(array $expectedConfig, Config $resultingConfig)
@@ -121,6 +147,8 @@ class QlessConnectorTest extends TestCase
     {
         $config = $this->getConfig(self::SINGLE_REDIS_CONFIG);
 
+        $this->setEnv(self::SINGLE_REDIS_CONFIG);
+
         $connector = new QlessConnector();
         $queue = $connector->connect($config);
 
@@ -135,6 +163,8 @@ class QlessConnectorTest extends TestCase
     {
         $config = $this->getConfig(self::SHARDING_REDIS_CONFIG_SINGLE);
 
+        $this->setEnv(self::SHARDING_REDIS_CONFIG_SINGLE);
+
         $connector = new QlessConnector();
         $queue = $connector->connect($config);
 
@@ -148,6 +178,8 @@ class QlessConnectorTest extends TestCase
     public function testConnectShardingMultiplyConfig()
     {
         $config = $this->getConfig(self::SHARDING_REDIS_CONFIG_MULTIPLY);
+
+        $this->setEnv(self::SHARDING_REDIS_CONFIG_MULTIPLY);
 
         $connector = new QlessConnector();
         $queue = $connector->connect($config);
@@ -164,6 +196,8 @@ class QlessConnectorTest extends TestCase
     public function testConnectShardingMultiplyConfigWithSpaces()
     {
         $config = $this->getConfig(self::SHARDING_REDIS_CONFIG_MULTIPLY_SPACES);
+
+        $this->setEnv(self::SHARDING_REDIS_CONFIG_MULTIPLY_SPACES);
 
         $connector = new QlessConnector();
         $queue = $connector->connect($config);
@@ -182,6 +216,8 @@ class QlessConnectorTest extends TestCase
     {
         $config = self::SHARDING_REDIS_CONFIG_MULTIPLY;
         $config['password'] = null;
+
+        $this->setEnv($config);
 
         $config = $this->getConfig($config);
 
@@ -204,6 +240,8 @@ class QlessConnectorTest extends TestCase
         $config = self::SHARDING_REDIS_CONFIG_MULTIPLY;
         $config['port'] = null;
 
+        $this->setEnv($config);
+
         $config = $this->getConfig($config);
 
         $connector = new QlessConnector();
@@ -223,6 +261,8 @@ class QlessConnectorTest extends TestCase
     {
         $config = self::SHARDING_REDIS_CONFIG_MULTIPLY;
         $config['database'] = null;
+
+        $this->setEnv($config);
 
         $config = $this->getConfig($config);
 
@@ -245,6 +285,8 @@ class QlessConnectorTest extends TestCase
         $config['password'] = self::PWD1;
         $config['port'] = self::PORT1;
         $config['database'] = self::DB1;
+
+        $this->setEnv($config);
 
         $config = $this->getConfig($config);
 
