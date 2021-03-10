@@ -2,6 +2,7 @@
 
 namespace LaravelQless\Tests\Queue;
 
+use Illuminate\Queue\QueueManager;
 use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
 use Orchestra\Testbench\TestCase;
@@ -11,35 +12,11 @@ class QlessConnectorTest extends TestCase
 {
 
     #region Test data
-
     private const QUEUE_CONFIG = [
         'driver' => 'qless',
         'connection' => 'qless',
         'queue' => 'default',
         'redis_connection' => 'qless',
-    ];
-
-    private const QLESS_CONFIG = [
-        'config' =>
-            [
-                'queue' => [
-                    'default' => 'qless',
-                    'connections' => [
-                        'qless' => [
-                            'driver' => 'qless',
-                            'connection' => 'qless',
-                            'queue' => 'default',
-                            'redis_connection' => 'qless',
-                        ],
-                    ]
-                ],
-                'database' => [
-                    'redis' =>
-                        [
-                            'qless' => null
-                        ]
-                ],
-            ],
     ];
 
     private const HOST1 = 'redis.host';
@@ -88,14 +65,7 @@ class QlessConnectorTest extends TestCase
     protected function setEnv(array $redisConfig)
     {
         $this->app['config']->set('queue.default', 'qless');
-        $qlessConfig = [
-            'driver' => 'qless',
-            'connection' => 'qless',
-            'queue' => 'default',
-            'redis_connection' => 'qless',
-        ];
-        $this->app['config']->set('queue.connections.qless', $qlessConfig);
-
+        $this->app['config']->set('queue.connections.qless', self::QUEUE_CONFIG);
         $this->app['config']->set('database.redis.qless', $redisConfig);
 
         $queueManager = new QueueManager($this->app);
