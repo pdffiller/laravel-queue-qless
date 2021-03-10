@@ -69,9 +69,9 @@ class QlessConnectorTest extends TestCase
         $this->app['config']->set('database.redis.qless', $redisConfig);
 
         $queueManager = new QueueManager($this->app);
-        $queueManager->addConnector('qless', function () {
-            return new QlessConnector;
-        });
+//        $queueManager->addConnector('qless', function () {
+//            return new QlessConnector;
+//        });
         $queueManager->setDefaultDriver('qless');
 
         $this->app['queue'] = $queueManager;
