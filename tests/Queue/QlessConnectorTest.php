@@ -13,10 +13,26 @@ class QlessConnectorTest extends TestCase
 
     #region Test data
     private const QLESS_CONFIG = [
-        'driver' => 'qless',
-        'connection' => 'qless',
-        'queue' => 'default',
-        'redis_connection' => 'qless',
+        'config' =>
+            [
+                'queue' => [
+                    'default' => 'qless',
+                    'connections' => [
+                        'qless' => [
+                            'driver' => 'qless',
+                            'connection' => 'qless',
+                            'queue' => 'default',
+                            'redis_connection' => 'qless',
+                        ],
+                    ]
+                ],
+                'database' => [
+                    'redis' =>
+                        [
+                            'qless' => null
+                        ]
+                ],
+            ],
     ];
 
     private const HOST1 = 'redis.host';
@@ -59,16 +75,13 @@ class QlessConnectorTest extends TestCase
         'port' => '   ' . self::PORT1 . ' , ' . self::PORT2 . '   ',
         'database' => '  ' . self::DB1 . ' , ' . self::DB2 . '   ',
     ];
+
     #endregion
 
     protected function getConfig(array $redisConfig)
     {
         $config = self::QLESS_CONFIG;
-
-        $config['database'] = [
-            'redis' => $redisConfig
-        ];
-
+        $config['database']['redis']['qless'] = $redisConfig;
         return $config;
     }
 
@@ -109,7 +122,6 @@ class QlessConnectorTest extends TestCase
         $qlessConfig = $queue->getConnection()->getConfig();
         $this->compareConfigs($config, $qlessConfig);
     }
-
 
 
     public function testConnectShardingSingleConfig()
