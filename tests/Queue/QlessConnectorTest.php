@@ -78,11 +78,18 @@ class QlessConnectorTest extends TestCase
 
     #endregion
 
+    public function setUp(): void
+    {
+        parent::setUp();
+    }
+
     protected function getConfig(array $redisConfig)
     {
         $config = self::QLESS_CONFIG;
         $config['database']['redis']['qless'] = $redisConfig;
-        return $config;
+
+        config($config['config']);
+        return $config['config'];
     }
 
     protected function compareConfigs(array $expectedConfig, Config $resultingConfig)
