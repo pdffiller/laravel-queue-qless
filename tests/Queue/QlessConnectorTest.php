@@ -61,15 +61,15 @@ class QlessConnectorTest extends TestCase
     ];
     #endregion
 
-    protected function setEnv(array $redisConfig)
+    protected function getConfig(array $redisConfig)
     {
-//        $app = [
-//            'config' => new Config(
-//                self::QLESS_CONFIG
-//            ),
-//        ];
-//        $providerMock = new LaravelQlessServiceProvider($app);
-//        $providerMock->boot();
+        $config = self::QLESS_CONFIG;
+
+        $config['database'] = [
+            'redis' => $redisConfig
+        ];
+
+        return $config;
     }
 
     protected function compareConfigs(array $expectedConfig, Config $resultingConfig)
@@ -99,12 +99,10 @@ class QlessConnectorTest extends TestCase
 
     public function testConnectSingleConfig()
     {
-        $config = self::SINGLE_REDIS_CONFIG;
-
-        $this->setEnv($config);
+        $config = $this->getConfig(self::SINGLE_REDIS_CONFIG);
 
         $connector = new QlessConnector();
-        $queue = $connector->connect(self::QLESS_CONFIG);
+        $queue = $connector->connect($config);
 
         $this->assertInstanceOf(QlessQueue::class, $queue);
 
@@ -112,14 +110,14 @@ class QlessConnectorTest extends TestCase
         $this->compareConfigs($config, $qlessConfig);
     }
 
+
+
     public function testConnectShardingSingleConfig()
     {
-        $config = self::SHARDING_REDIS_CONFIG_SINGLE;
-
-        $this->setEnv($config);
+        $config = $this->getConfig(self::SHARDING_REDIS_CONFIG_SINGLE);
 
         $connector = new QlessConnector();
-        $queue = $connector->connect(self::QLESS_CONFIG);
+        $queue = $connector->connect($config);
 
         $this->assertInstanceOf(QlessQueue::class, $queue);
 
@@ -130,12 +128,10 @@ class QlessConnectorTest extends TestCase
 
     public function testConnectShardingMultiplyConfig()
     {
-        $config = self::SHARDING_REDIS_CONFIG_MULTIPLY;
-
-        $this->setEnv($config);
+        $config = $this->getConfig(self::SHARDING_REDIS_CONFIG_MULTIPLY);
 
         $connector = new QlessConnector();
-        $queue = $connector->connect(self::QLESS_CONFIG);
+        $queue = $connector->connect($config);
 
         $this->assertInstanceOf(QlessQueue::class, $queue);
 
@@ -148,12 +144,10 @@ class QlessConnectorTest extends TestCase
 
     public function testConnectShardingMultiplyConfigWithSpaces()
     {
-        $config = self::SHARDING_REDIS_CONFIG_MULTIPLY_SPACES;
-
-        $this->setEnv($config);
+        $config = $this->getConfig(self::SHARDING_REDIS_CONFIG_MULTIPLY_SPACES);
 
         $connector = new QlessConnector();
-        $queue = $connector->connect(self::QLESS_CONFIG);
+        $queue = $connector->connect($config);
 
         $this->assertInstanceOf(QlessQueue::class, $queue);
 
@@ -170,11 +164,11 @@ class QlessConnectorTest extends TestCase
         $config = self::SHARDING_REDIS_CONFIG_MULTIPLY;
         $config['password'] = null;
 
-
-        $this->setEnv($config);
+        $config = $this->getConfig($config);
 
         $connector = new QlessConnector();
-        $queue = $connector->connect(self::QLESS_CONFIG);
+        $queue = $connector->connect($config);
+
 
         $this->assertInstanceOf(QlessQueue::class, $queue);
 
@@ -191,10 +185,10 @@ class QlessConnectorTest extends TestCase
         $config = self::SHARDING_REDIS_CONFIG_MULTIPLY;
         $config['port'] = null;
 
-        $this->setEnv($config);
+        $config = $this->getConfig($config);
 
         $connector = new QlessConnector();
-        $queue = $connector->connect(self::QLESS_CONFIG);
+        $queue = $connector->connect($config);
 
         $this->assertInstanceOf(QlessQueue::class, $queue);
 
@@ -211,10 +205,10 @@ class QlessConnectorTest extends TestCase
         $config = self::SHARDING_REDIS_CONFIG_MULTIPLY;
         $config['database'] = null;
 
-        $this->setEnv($config);
+        $config = $this->getConfig($config);
 
         $connector = new QlessConnector();
-        $queue = $connector->connect(self::QLESS_CONFIG);
+        $queue = $connector->connect($config);
 
         $this->assertInstanceOf(QlessQueue::class, $queue);
 
@@ -233,10 +227,10 @@ class QlessConnectorTest extends TestCase
         $config['port'] = self::PORT1;
         $config['database'] = self::DB1;
 
-        $this->setEnv($config);
+        $config = $this->getConfig($config);
 
         $connector = new QlessConnector();
-        $queue = $connector->connect(self::QLESS_CONFIG);
+        $queue = $connector->connect($config);
 
         $this->assertInstanceOf(QlessQueue::class, $queue);
 
