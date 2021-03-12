@@ -46,7 +46,7 @@ class QlessConnector implements ConnectorInterface
 
         if ($this->hasSharding($qlessConfig)) {
             $shardingConfigs = $this->getShardingConfigs($qlessConfig);
-            $qlessConfig = $shardingConfigs[rand(0, count($shardingConfigs) - 1)];
+            $qlessConfig = $shardingConfigs[array_rand($shardingConfigs)];
         }
 
         return new QlessQueue(
