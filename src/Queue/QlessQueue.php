@@ -23,11 +23,6 @@ class QlessQueue extends Queue implements QueueContract
     private const WORKER_PREFIX = 'laravel_';
 
     /**
-     * @var Client
-     */
-    private $connect;
-
-    /**
      * @var string
      */
     private $defaultQueue;
@@ -37,14 +32,17 @@ class QlessQueue extends Queue implements QueueContract
      */
     private $config;
 
+    /** @var QlessConnectionHandler */
+    private $clients;
+
     /**
      * QlessQueue constructor.
-     * @param Client $connect
+     * @param QlessConnectionHandler $clients
      * @param array $config
      */
-    public function __construct(Client $connect, array $config)
+    public function __construct(QlessConnectionHandler $clients, array $config)
     {
-        $this->connect = $connect;
+        $this->clients = $clients;
         $this->defaultQueue = $config['queue'] ?? null;
         $this->connectionName = $config['connection'] ?? '';
         $this->config = $config;
@@ -53,20 +51,20 @@ class QlessQueue extends Queue implements QueueContract
     /**
      * Get the size of the queue.
      *
-     * @param  string  $queue
+     * @param string $queue
      * @return int
      */
     public function size($queue = null): int
     {
-        return $this->getConnection()->length($queue ?? '');
+        return $this->getNextConnection()->length($queue ?? '');
     }
 
     /**
      * Push a raw payload onto the queue.
      *
-     * @param  string  $payload
-     * @param  string  $queueName
-     * @param  array   $options
+     * @param string $payload
+     * @param string $queueName
+     * @param array $options
      * @return mixed
      */
     public function pushRaw($payload, $queueName = null, array $options = [])
@@ -75,7 +73,7 @@ class QlessQueue extends Queue implements QueueContract
 
         $queueName = $queueName ?? $this->defaultQueue;
 
-        $queue = $this->getConnection()->queues[$queueName];
+        $queue = $this->getRandomConnection()->queues[$queueName];
 
         $qlessOptions = $payloadData['data'][self::JOB_OPTIONS_KEY] ?? [];
 
@@ -96,23 +94,23 @@ class QlessQueue extends Queue implements QueueContract
     /**
      * Push a new job onto the queue.
      *
-     * @param  string|object  $job
-     * @param  mixed   $data
-     * @param  string  $queueName
+     * @param string|object $job
+     * @param mixed $data
+     * @param string $queueName
      * @return mixed
      */
     public function push($job, $data = '', $queueName = null)
     {
-        return $this->pushRaw($this->makePayload($job, (array) $data), $queueName);
+        return $this->pushRaw($this->makePayload($job, (array)$data), $queueName);
     }
 
     /**
      * Push a new job onto the queue after a delay.
      *
-     * @param  \DateTimeInterface|\DateInterval|int  $delay
-     * @param  string|object  $job
-     * @param  mixed   $data
-     * @param  string  $queueName
+     * @param \DateTimeInterface|\DateInterval|int $delay
+     * @param string|object $job
+     * @param mixed $data
+     * @param string $queueName
      * @return mixed
      */
     public function later($delay, $job, $data = '', $queueName = null)
@@ -139,7 +137,7 @@ class QlessQueue extends Queue implements QueueContract
     public function recur(int $interval, string $job, array $data, ?string $queueName = null): string
     {
         /** @var \Qless\Queues\Queue $queue */
-        $queue = $this->getConnection()->queues[$queueName];
+        $queue = $this->getNextConnection()->queues[$queueName];
 
         $options = $data[self::JOB_OPTIONS_KEY] ?? [];
         $options = array_merge($options, ['interval' => $interval]);
@@ -160,16 +158,18 @@ class QlessQueue extends Queue implements QueueContract
     /**
      * Pop the next job off of the queue.
      *
-     * @param  string  $queueName
+     * @param string $queueName
      * @return QlessJob|null
      */
     public function pop($queueName = null)
     {
+        $connection = $this->getNextConnection();
+
         /** @var \Qless\Queues\Queue $queue */
-        $queue = $this->getConnection()->queues[$queueName];
+        $queue = $connection->queues[$queueName];
 
         /** @var BaseJob $job */
-        $job = $queue->pop(self::WORKER_PREFIX . $this->connect->getWorkerName());
+        $job = $queue->pop(self::WORKER_PREFIX . $connection->getWorkerName());
 
         if (!$job) {
             return null;
@@ -195,10 +195,14 @@ class QlessQueue extends Queue implements QueueContract
     {
         $queueName = $queueName ?? $this->defaultQueue;
 
-        /** @var \Qless\Queues\Queue $queue */
-        $queue = $this->getConnection()->queues[$queueName];
+        $result = true;
+        foreach ($this->getAllConnections() as $connection) {
+            /** @var \Qless\Queues\Queue $queue */
+            $queue = $connection->queues[$queueName];
+            $result = $queue->subscribe($topic) && $result;
+        }
 
-        return $queue->subscribe($topic);
+        return $result;
     }
 
     /**
@@ -210,10 +214,14 @@ class QlessQueue extends Queue implements QueueContract
     {
         $queueName = $queueName ?? $this->defaultQueue;
 
-        /** @var \Qless\Queues\Queue $queue */
-        $queue = $this->getConnection()->queues[$queueName];
+        $result = true;
+        foreach ($this->getAllConnections() as $connection) {
+            /** @var \Qless\Queues\Queue $queue */
+            $queue = $connection->queues[$queueName];
+            $result = $queue->unSubscribe($topic) && $result;
+        }
 
-        return $queue->unSubscribe($topic);
+        return $result;
     }
 
     /**
@@ -225,7 +233,7 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function pushToTopic(string $topicName, string $job, array $data = [], array $options = [])
     {
-        $topic = new Topic($topicName, $this->getConnection());
+        $topic = new Topic($topicName, $this->getRandomConnection());
 
         $qlessOptions = $payloadData['data'][self::JOB_OPTIONS_KEY] ?? [];
         $options = array_merge($qlessOptions, $options);
@@ -281,10 +289,20 @@ class QlessQueue extends Queue implements QueueContract
     }
 
     /**
-     * @return Client
+     * @return Client[]
      */
-    public function getConnection(): Client
+    public function getAllConnections(): array
     {
-        return $this->connect;
+        return $this->clients->getAllClients();
+    }
+
+    public function getRandomConnection(): Client
+    {
+        return $this->clients->getNextClient();
+    }
+
+    public function getNextConnection(): Client
+    {
+        return $this->clients->getNextClient();
     }
 }

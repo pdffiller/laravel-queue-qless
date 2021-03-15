@@ -18,13 +18,6 @@ class QlessConnector implements ConnectorInterface
 
     private const DEFAULT_CONNECTION_CONFIG = 'qless';
 
-    private const CONFIG_HOST_KEY = 'host';
-    private const CONFIG_PASSWORD_KEY = 'password';
-    private const CONFIG_PORT_KEY = 'port';
-    private const CONFIG_DATABASE_KEY = 'database';
-
-    private const CONFIG_SEPARATOR = ',';
-
     public const DEFAULT_PASSWORD = null;
     public const DEFAULT_PORT = 6379;
     public const DEFAULT_DATABASE = 0;
@@ -38,81 +31,21 @@ class QlessConnector implements ConnectorInterface
      */
     public function connect(array $config): QlessQueue
     {
-        $redisConnection = Arr::get($config,
-            self::REDIS_CONNECTION_CONFIG_KEY,
-            self::DEFAULT_CONNECTION_CONFIG);
+        $redisConnection = Arr::get($config, self::REDIS_CONNECTION_CONFIG_KEY, self::DEFAULT_CONNECTION_CONFIG);
 
-        $qlessConfig = Config::get(self::CONFIG_PATH_PREFIX . $redisConnection, []);
+        if (!is_array($redisConnection)) {
+            $redisConnection = [$redisConnection];
+        }
 
-        if ($this->hasSharding($qlessConfig)) {
-            $shardingConfigs = $this->getShardingConfigs($qlessConfig);
-            $qlessConfig = $shardingConfigs[rand(0, count($shardingConfigs) - 1)];
+        $clients = [];
+        foreach ($redisConnection as $connection) {
+            $qlessConfig = Config::get(self::CONFIG_PATH_PREFIX . $connection, []);
+            $clients[] = new Client($qlessConfig);
         }
 
         return new QlessQueue(
-            new Client($qlessConfig),
+            new QlessConnectionHandler($clients),
             $config
         );
     }
-
-    private function hasSharding(array $connectionConfig): bool
-    {
-        $hostList = $this->extractConfigValues(self::CONFIG_HOST_KEY, $connectionConfig);
-        return (count($hostList) > 1);
-    }
-
-    private function getShardingConfigs(array $connectionConfig): array
-    {
-        $shardingList = [];
-
-        $hostList = $this->extractConfigValues(self::CONFIG_HOST_KEY, $connectionConfig);
-        $portList = $this->extractConfigValues(self::CONFIG_PORT_KEY, $connectionConfig);
-        $passwordList = $this->extractConfigValues(self::CONFIG_PASSWORD_KEY, $connectionConfig);
-        $databaseList = $this->extractConfigValues(self::CONFIG_DATABASE_KEY, $connectionConfig);
-
-        foreach ($hostList as $i => $host) {
-            if ($host === '') {
-                continue;
-            }
-            $shardingList[] = $this->getQlessConfig(
-                $host,
-                $passwordList[$i] ?? null,
-                $portList[$i] ?? null,
-                $databaseList[$i] ?? null
-            );
-        }
-
-        return $shardingList;
-    }
-
-    private function extractConfigValues(string $key, array $connectionConfig): array
-    {
-        $value = $connectionConfig[$key] ?? null;
-
-        if (!$value) {
-            return [];
-        }
-
-        $values = explode(self::CONFIG_SEPARATOR, $value);
-
-        return array_map(function ($v) {
-            return trim($v) ?: null;
-        }, $values);
-    }
-
-    private function getQlessConfig(
-        string $host,
-        ?string $password,
-        ?int $port,
-        ?int $database
-    ): array
-    {
-        return [
-            self::CONFIG_HOST_KEY => $host,
-            self::CONFIG_PASSWORD_KEY => $password ?: self::DEFAULT_PASSWORD,
-            self::CONFIG_PORT_KEY => $port ?: self::DEFAULT_PORT,
-            self::CONFIG_DATABASE_KEY => $database ?: self::DEFAULT_DATABASE,
-        ];
-    }
-
 }

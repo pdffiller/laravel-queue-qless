@@ -7,6 +7,7 @@ use Orchestra\Testbench\TestCase;
 use Illuminate\Queue\Connectors\ConnectorInterface;
 use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
+use Predis\Client;
 
 class ConnectorTest extends TestCase
 {
@@ -24,6 +25,21 @@ class ConnectorTest extends TestCase
             'connection' => 'qless',
         ]);
         $this->assertInstanceOf(QlessQueue::class, $queue);
+    }
+
+    public function testShardingConnect()
+    {
+        $connector = new QlessConnector();
+        $queue = $connector->connect([
+            'redis_connection' => ['qless1', 'qless2'],
+            'connection' => 'qless',
+        ]);
+        $this->assertInstanceOf(QlessQueue::class, $queue);
+
+
+        $this->assertInstanceOf(Client::class, $queue->getNextConnection());
+        $this->assertInstanceOf(Client::class, $queue->getNextConnection());
+        $this->assertInstanceOf(Client::class, $queue->getNextConnection());
     }
 
     /**

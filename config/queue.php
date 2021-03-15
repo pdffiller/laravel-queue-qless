@@ -8,7 +8,8 @@ return [
             'driver' => 'qless',
             'connection' => 'qless',
             'queue' => 'default',
-            'redis_connection' => 'qless',
+//            'redis_connection' => 'qless',
+            'redis_connection' => ['qless1', 'qless2'],
         ],
     ],
 ];
