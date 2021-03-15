@@ -36,8 +36,7 @@ class QlessConnectionHandler
             $this->clients[] = $client;
 
         }
-        if(empty($this->clients))
-        {
+        if (empty($this->clients)) {
             throw new \Exception("No configs found");
         }
 
@@ -56,16 +55,20 @@ class QlessConnectionHandler
 
     public function getCurrentClient(): Client
     {
+        if ($this->clientIterator->current() === null) {
+            return $this->getNextClient();
+        }
+
         return $this->clientIterator->current();
     }
 
     public function getNextClient(): Client
     {
-        if ($this->getCurrentClient() === null) {
+        if ($this->clientIterator->current() === null) {
             $this->clientIterator->rewind();
         }
 
-        $currentClient = $this->getCurrentClient();
+        $currentClient = $this->clientIterator->current();
         $this->clientIterator->next();
 
         return $currentClient;
