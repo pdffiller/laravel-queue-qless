@@ -53,6 +53,14 @@ class ConnectorTest extends TestCase
             'host' => REDIS_HOST,
             'port' => REDIS_PORT,
         ]);
+        $app['config']->set('database.redis.qless1', [
+            'host' => REDIS_HOST,
+            'port' => REDIS_PORT,
+        ]);
+        $app['config']->set('database.redis.qless2', [
+            'host' => REDIS_HOST,
+            'port' => REDIS_PORT,
+        ]);
     }
 
     protected function getApplicationProviders($app)
