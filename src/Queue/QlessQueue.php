@@ -305,4 +305,9 @@ class QlessQueue extends Queue implements QueueContract
     {
         return $this->clients->getNextClient();
     }
+
+    public function getCurrentConnection(): Client
+    {
+        return $this->clients->getCurrentClient();
+    }
 }

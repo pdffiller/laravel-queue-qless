@@ -36,6 +36,11 @@ class QlessConnectionHandler
             $this->clients[] = $client;
 
         }
+        if(empty($this->clients))
+        {
+            throw new \Exception("No configs found");
+        }
+
         $this->clientIterator = new ArrayIterator($this->clients);
     }
 

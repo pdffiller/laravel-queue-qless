@@ -6,7 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Bus\Dispatchable;
-use LaravelQless\Queue\QlessQueue;
+use LaravelQless\Queue\QlessConnector;
 use Qless\Jobs\BaseJob;
 use LaravelQless\Contracts\QlessJob;
 
@@ -63,16 +63,14 @@ abstract class AbstractJob implements QlessJob, ShouldQueue, Arrayable
 
     private function completeImmediately(): void
     {
-        /**@var QlessQueue $queue  */
-        $queue = app(QlessQueue::class, [
-            'config' => [
-                'queue' => $this->queue,
-                'connection' => $this->connection
-            ]
+        $connector = new QlessConnector();
+        $queue = $connector->connect([
+            'queue' => $this->queue,
+            'connection' => $this->connection
         ]);
 
         $jid = $queue->push($this, $this->data, $this->queue);
-        $connection = $queue->getConnection()->queues[$this->queue];
+        $connection = $queue->getCurrentConnection()->queues[$this->queue];
 
         /**@var BaseJob $job */
         $job = $connection->popByJid($jid);
