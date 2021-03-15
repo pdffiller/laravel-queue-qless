@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use LaravelQless\Contracts\JobHandler;
 use LaravelQless\Handler\DefaultHandler;
 use LaravelQless\Job\QlessJob;
+use LaravelQless\Queue\QlessConnectionHandler;
 use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
 use Orchestra\Testbench\TestCase;
@@ -223,11 +224,15 @@ class QueueTest extends TestCase
 
     protected function getQueue()
     {
-        $queue = new QlessQueue(
-            new Client([
+        $connectionHandler = new QlessConnectionHandler(
+            [ new Client([
                 'host' => REDIS_HOST,
                 'port' => REDIS_PORT,
-            ]),
+            ])]
+        );
+
+        $queue = new QlessQueue(
+            $connectionHandler,
             [
                 'queue' => 'test_qless_queue',
                 'connection' => 'qless',
