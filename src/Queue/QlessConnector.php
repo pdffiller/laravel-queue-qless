@@ -18,10 +18,6 @@ class QlessConnector implements ConnectorInterface
 
     private const DEFAULT_CONNECTION_CONFIG = 'qless';
 
-    public const DEFAULT_PASSWORD = null;
-    public const DEFAULT_PORT = 6379;
-    public const DEFAULT_DATABASE = 0;
-
     /**
      * Establish a queue connection.
      *

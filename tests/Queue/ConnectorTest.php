@@ -7,7 +7,7 @@ use Orchestra\Testbench\TestCase;
 use Illuminate\Queue\Connectors\ConnectorInterface;
 use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
-use Predis\Client;
+use Qless\Client;
 
 class ConnectorTest extends TestCase
 {
