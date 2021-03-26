@@ -13,22 +13,35 @@ use Qless\Client;
  */
 class QlessConnector implements ConnectorInterface
 {
+    private const REDIS_CONNECTION_CONFIG_KEY = 'redis_connection';
+    private const CONFIG_PATH_PREFIX = 'database.redis.';
+
+    private const DEFAULT_CONNECTION_CONFIG = 'qless';
+
     /**
-    * Establish a queue connection.
-    *
-    * @param array $config
-    *
-    * @return QlessQueue
-    */
+     * Establish a queue connection.
+     *
+     * @param array $config
+     *
+     * @return QlessQueue
+     */
     public function connect(array $config): QlessQueue
     {
-         $redisConnection = Arr::get($config, 'redis_connection', 'qless');
+        $redisConnection = Arr::get($config, self::REDIS_CONNECTION_CONFIG_KEY, self::DEFAULT_CONNECTION_CONFIG);
 
-         $redisConfig = Config::get('database.redis.' . $redisConnection, []);
+        if (!is_array($redisConnection)) {
+            $redisConnection = [$redisConnection];
+        }
 
-         return new QlessQueue(
-             new Client($redisConfig),
-             $config
-         );
+        $clients = [];
+        foreach ($redisConnection as $connection) {
+            $qlessConfig = Config::get(self::CONFIG_PATH_PREFIX . $connection, []);
+            $clients[] = new Client($qlessConfig);
+        }
+
+        return new QlessQueue(
+            new QlessConnectionHandler($clients),
+            $config
+        );
     }
 }

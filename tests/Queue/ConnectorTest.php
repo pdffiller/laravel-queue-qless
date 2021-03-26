@@ -7,6 +7,7 @@ use Orchestra\Testbench\TestCase;
 use Illuminate\Queue\Connectors\ConnectorInterface;
 use LaravelQless\Queue\QlessConnector;
 use LaravelQless\Queue\QlessQueue;
+use Qless\Client;
 
 class ConnectorTest extends TestCase
 {
@@ -26,6 +27,21 @@ class ConnectorTest extends TestCase
         $this->assertInstanceOf(QlessQueue::class, $queue);
     }
 
+    public function testShardingConnect()
+    {
+        $connector = new QlessConnector();
+        $queue = $connector->connect([
+            'redis_connection' => ['qless1', 'qless2'],
+            'connection' => 'qless',
+        ]);
+        $this->assertInstanceOf(QlessQueue::class, $queue);
+
+
+        $this->assertInstanceOf(Client::class, $queue->getNextConnection());
+        $this->assertInstanceOf(Client::class, $queue->getNextConnection());
+        $this->assertInstanceOf(Client::class, $queue->getNextConnection());
+    }
+
     /**
      * Set laravel config
      * @param \Illuminate\Foundation\Application $app
@@ -34,6 +50,14 @@ class ConnectorTest extends TestCase
     {
         // Setup default redis
         $app['config']->set('database.redis.qless', [
+            'host' => REDIS_HOST,
+            'port' => REDIS_PORT,
+        ]);
+        $app['config']->set('database.redis.qless1', [
+            'host' => REDIS_HOST,
+            'port' => REDIS_PORT,
+        ]);
+        $app['config']->set('database.redis.qless2', [
             'host' => REDIS_HOST,
             'port' => REDIS_PORT,
         ]);

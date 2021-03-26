@@ -3,6 +3,7 @@
 namespace LaravelQless\Tests\Queue;
 
 use LaravelQless\Contracts\JobHandler;
+use LaravelQless\Queue\QlessConnectionHandler;
 use LaravelQless\Queue\QlessQueue;
 use Orchestra\Testbench\TestCase;
 use Qless\Client;
@@ -25,10 +26,12 @@ class HandlerTest extends TestCase
     protected function getQueue()
     {
         $queue = new QlessQueue(
-            new Client([
-                'host' => REDIS_HOST,
-                'port' => REDIS_PORT,
-            ]),
+            new QlessConnectionHandler(
+                [new Client([
+                    'host' => REDIS_HOST,
+                    'port' => REDIS_PORT,
+                ])]
+            ),
             [
                 'queue' => 'test_qless_queue',
                 'connection' => 'qless',
