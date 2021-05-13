@@ -310,4 +310,13 @@ class QlessQueue extends Queue implements QueueContract
     {
         return $this->clients->getCurrentClient();
     }
+
+    /**
+     * @deprecated use \LaravelQless\Queue\QlessQueue::getCurrentConnection
+     * @alias
+     */
+    public function getConnection(): Client
+    {
+        return $this->getCurrentConnection();
+    }
 }
