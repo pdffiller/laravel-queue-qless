@@ -166,6 +166,43 @@ worker runs it. Recurring jobs are specified much like other jobs:
 
 ```
 
+### Sharding
+
+If you compare Qless sharding with the DB sharding, then they have little in common.
+Qless gets random write-connection for all jobs.
+Data reading occurs in a circle from all connections.
+
+Setup redis connections for sharding in `config/database.php`:
+```php
+return [
+    'redis' => [
+        // ...
+        'qless' => [ /* ... */ ],
+        'connection2' => [ /* ... */ ],
+        'connection3' => [ /* ... */ ],
+        // ...
+    ],
+];
+```
+
+Then set the shards via `redis_connection` key in `config/queue.php` file:
+```php
+return [
+    'connections' => [
+        // ...
+        'qless' => [
+            // ...
+            'redis_connection' => [
+                'connection2',
+                'connection3',
+            ],
+            // ...
+        ],
+        // ...
+    ],
+];
+```
+
 ## Testing
 
 You can run the tests with:
