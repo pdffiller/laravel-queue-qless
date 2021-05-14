@@ -5,6 +5,7 @@ namespace LaravelQless\Tests\Job;
 use Illuminate\Container\Container;
 use LaravelQless\Contracts\JobHandler;
 use LaravelQless\Queue\QlessQueue;
+use LaravelQless\Tests\Helpers\ModifierTrait;
 use Orchestra\Testbench\TestCase;
 use LaravelQless\Job\QlessJob;
 use Qless\Jobs\BaseJob;
@@ -14,10 +15,9 @@ class QlessJobTest extends TestCase
 {
     public function testGetJobId(): void
     {
-        $jobMock = $this->getMockBuilder(BaseJob::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $jobMock->method('getJid')->willReturn('my-test-jid');
+        $jobMock = $this->getJob();
+        $jobMock->method('getJid')
+            ->willReturn('my-test-jid');
 
         $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $jobMock, ''));
 
@@ -26,10 +26,9 @@ class QlessJobTest extends TestCase
 
     public function testGetData(): void
     {
-        $jobMock = $this->getMockBuilder(BaseJob::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $jobMock->method('getData')->willReturn(new JobData(['key' => 'value']));
+        $jobMock = $this->getJob();
+        $jobMock->method('getData')
+            ->willReturn(new JobData(['key' => 'value']));
 
         $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $jobMock, ''));
 
@@ -43,6 +42,114 @@ class QlessJobTest extends TestCase
         $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $this->getJob(), $payload));
 
         self::assertEquals($job->payload(), ['key' => 'value']);
+    }
+
+    public function testRelease(): void
+    {
+        $queue = $this->getQueue();
+        $queue->expects(self::once())
+            ->method('later')
+            ->willReturn('job-id');
+
+        $jobMock = $this->getJob();
+        $jobMock->method('getData')
+            ->willReturn(new JobData(['key' => 'value']));
+
+        $job = (new QlessJob($this->getContainer(), $queue, $this->getJobHandler(), $jobMock, ''));
+
+        self::assertFalse($job->isReleased());
+
+        self::assertEquals($job->release(), 'job-id');
+
+        self::assertTrue($job->isReleased());
+    }
+
+    public function testDelete(): void
+    {
+        $job = $this->getJob();
+        $job->expects(self::once())
+            ->method('cancel');
+
+        $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $job, ''));
+
+        $job->delete();
+    }
+
+    public function testAttempts(): void
+    {
+        $job = $this->getJob();
+        $job->expects(self::once())
+            ->method('getRemaining')
+            ->willReturn(3);
+
+        $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $job, ''));
+
+        self::assertEquals($job->attempts(), 3);
+    }
+
+    public function testMaxTries(): void
+    {
+        $job = $this->getJob();
+        $job->expects(self::once())
+            ->method('getRetries')
+            ->willReturn(10);
+
+        $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $job, ''));
+
+        self::assertEquals($job->maxTries(), 10);
+    }
+
+    public function testTimeout(): void
+    {
+        $job = $this->getJob();
+        $job->expects(self::once())
+            ->method('ttl')
+            ->willReturn(123.0);
+
+        $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $job, ''));
+
+        self::assertEquals($job->timeout(), 123);
+    }
+
+    /**
+     * @depends testTimeout
+     */
+    public function testTimeoutAt(): void
+    {
+        self::markTestSkipped('It is needed to refactor the class');
+    }
+
+    public function testGetName(): void
+    {
+        $job = $this->getJob();
+        $job->expects(self::once())
+            ->method('getKlass')
+            ->willReturn('jobClass');
+
+        $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $job, ''));
+
+        self::assertEquals($job->getName(), 'jobClass');
+    }
+
+    public function testGetQueue(): void
+    {
+        $job = $this->getJob();
+        $job->expects(self::once())
+            ->method('getQueue')
+            ->willReturn('jobName');
+
+        $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $job, ''));
+
+        self::assertEquals($job->getQueue(), 'jobName');
+    }
+
+    public function testGetRawBody(): void
+    {
+        $payload = 'raw body';
+
+        $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $this->getJob(), $payload));
+
+        self::assertEquals($job->getRawBody(), 'raw body');
     }
 
     /**
