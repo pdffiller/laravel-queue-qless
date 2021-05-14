@@ -13,7 +13,7 @@ class QlessConnectionHandler
 {
 
     /** @var Client[] */
-    private $clients;
+    private $clients = [];
 
     /** @var ArrayIterator */
     private $clientIterator;
@@ -21,21 +21,22 @@ class QlessConnectionHandler
     /**
      * QlessConnectionHandler constructor.
      * @param Client[] $clients
+     * @throws \Exception
      */
     public function __construct(array $clients)
     {
         $this->init($clients);
     }
 
+    /**
+     * @param array $clients
+     * @throws \Exception
+     */
     private function init(array $clients): void
     {
-        foreach ($clients as $client) {
-            if (!$client instanceof Client) {
-                continue;
-            }
-            $this->clients[] = $client;
-
-        }
+        $this->clients = array_filter($clients, static function ($client) {
+            return $client instanceof Client;
+        });
         if (empty($this->clients)) {
             throw new \Exception("No configs found");
         }
@@ -55,11 +56,7 @@ class QlessConnectionHandler
 
     public function getCurrentClient(): Client
     {
-        if ($this->clientIterator->current() === null) {
-            return $this->getNextClient();
-        }
-
-        return $this->clientIterator->current();
+        return $this->clientIterator->current() ?? $this->getNextClient();
     }
 
     public function getNextClient(): Client

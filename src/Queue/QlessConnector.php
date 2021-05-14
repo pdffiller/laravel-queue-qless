@@ -24,6 +24,7 @@ class QlessConnector implements ConnectorInterface
      * @param array $config
      *
      * @return QlessQueue
+     * @throws \Exception
      */
     public function connect(array $config): QlessQueue
     {

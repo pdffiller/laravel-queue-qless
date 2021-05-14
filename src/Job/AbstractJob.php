@@ -61,6 +61,9 @@ abstract class AbstractJob implements QlessJob, ShouldQueue, Arrayable
         return $this;
     }
 
+    /**
+     * @throws \Exception
+     */
     private function completeImmediately(): void
     {
         $connector = new QlessConnector();
@@ -78,6 +81,9 @@ abstract class AbstractJob implements QlessJob, ShouldQueue, Arrayable
         $job->perform();
     }
 
+    /**
+     * @throws \Exception
+     */
     public function __destruct()
     {
         if ($this->isSync) {
