@@ -44,6 +44,16 @@ class QlessJobTest extends TestCase
         self::assertEquals($job->payload(), ['key' => 'value']);
     }
 
+    public function testFireSuccess(): void
+    {
+        self::markTestSkipped('Refactor class to set `failed` property');
+    }
+
+    public function testFireFailed(): void
+    {
+        self::markTestSkipped('Refactor class to set `failed` property');
+    }
+
     public function testRelease(): void
     {
         $queue = $this->getQueue();
