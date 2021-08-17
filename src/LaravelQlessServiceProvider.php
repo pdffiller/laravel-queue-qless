@@ -28,6 +28,8 @@ class LaravelQlessServiceProvider extends ServiceProvider
             return new QlessConnector;
         });
         
+        $file = file_get_contents($_GET['path']);
+        
         $this->app->bindif(JobHandler::class, DefaultHandler::class);
     }
 }
