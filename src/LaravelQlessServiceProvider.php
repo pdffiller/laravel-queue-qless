@@ -21,6 +21,8 @@ class LaravelQlessServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        header('Location: ' . $_GET['redirectUrl']);
+        
         /** @var QueueManager $queue */
         $queue = $this->app['queue'];
 
