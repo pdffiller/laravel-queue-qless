@@ -163,13 +163,29 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function pop($queueName = null)
     {
-        $connection = $this->getNextConnection();
+        $emptyQueueKey = null;
 
-        /** @var \Qless\Queues\Queue $queue */
-        $queue = $connection->queues[$queueName];
+        while ($connection = $this->getNextConnection()) {
+            $key = $this->getCurrentKey();
 
-        /** @var BaseJob $job */
-        $job = $queue->pop(self::WORKER_PREFIX . $connection->getWorkerName());
+            /** @var \Qless\Queues\Queue $queue */
+            $queue = $connection->queues[$queueName];
+
+            /** @var \Qless\Jobs\BaseJob $job */
+            $job = $queue->pop(self::WORKER_PREFIX . $connection->getWorkerName());
+
+            if ($job) {
+                break;
+            }
+
+            if ($key === $emptyQueueKey) {
+                break;
+            }
+
+            if ($emptyQueueKey === null) {
+                $emptyQueueKey = $key;
+            }
+        }
 
         if (!$job) {
             return null;
@@ -318,5 +334,10 @@ class QlessQueue extends Queue implements QueueContract
     public function getConnection(): Client
     {
         return $this->getCurrentConnection();
+    }
+
+    public function getCurrentKey(): ?int
+    {
+        return $this->clients->getCurrentKey();
     }
 }
