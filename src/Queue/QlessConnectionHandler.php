@@ -70,8 +70,8 @@ class QlessConnectionHandler
         return $this->clientIterator->current();
     }
 
-    public function getCurrentKey(): ?int
+    public function getClientCount(): int
     {
-        return $this->clientIterator->key();
+        return $this->clientIterator->count();
     }
 }
