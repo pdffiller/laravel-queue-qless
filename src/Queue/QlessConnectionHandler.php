@@ -61,14 +61,17 @@ class QlessConnectionHandler
 
     public function getNextClient(): Client
     {
-        if ($this->clientIterator->current() === null) {
+        $this->clientIterator->next();
+
+        if (!$this->clientIterator->valid()) {
             $this->clientIterator->rewind();
         }
 
-        $currentClient = $this->clientIterator->current();
-        $this->clientIterator->next();
-
-        return $currentClient;
+        return $this->clientIterator->current();
     }
 
+    public function getClientCount(): int
+    {
+        return $this->clientIterator->count();
+    }
 }

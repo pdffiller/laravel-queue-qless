@@ -9,7 +9,6 @@ use LaravelQless\Contracts\JobHandler;
 use LaravelQless\Job\AbstractJob;
 use LaravelQless\Job\QlessJob;
 use Qless\Client;
-use Qless\Jobs\BaseJob;
 use Qless\Topics\Topic;
 
 /**
@@ -163,13 +162,21 @@ class QlessQueue extends Queue implements QueueContract
      */
     public function pop($queueName = null)
     {
-        $connection = $this->getNextConnection();
+        $connectionCount = $this->getClientCount();
 
-        /** @var \Qless\Queues\Queue $queue */
-        $queue = $connection->queues[$queueName];
+        for ($i = 0; $i < $connectionCount; $i++) {
+            $connection = $this->getNextConnection();
 
-        /** @var BaseJob $job */
-        $job = $queue->pop(self::WORKER_PREFIX . $connection->getWorkerName());
+            /** @var \Qless\Queues\Queue $queue */
+            $queue = $connection->queues[$queueName];
+
+            /** @var \Qless\Jobs\BaseJob $job */
+            $job = $queue->pop(self::WORKER_PREFIX . $connection->getWorkerName());
+
+            if ($job) {
+                break;
+            }
+        }
 
         if (!$job) {
             return null;
@@ -318,5 +325,10 @@ class QlessQueue extends Queue implements QueueContract
     public function getConnection(): Client
     {
         return $this->getCurrentConnection();
+    }
+
+    public function getClientCount(): int
+    {
+        return $this->clients->getClientCount();
     }
 }
