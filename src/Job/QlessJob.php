@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Container\Container;
 use Illuminate\Queue\Jobs\Job;
 use Illuminate\Contracts\Queue\Job as JobContract;
+use Illuminate\Queue\Jobs\JobName;
 use Illuminate\Queue\ManuallyFailedException;
 use LaravelQless\Queue\QlessQueue;
 use Qless\Jobs\BaseJob;
@@ -193,5 +194,22 @@ class QlessJob extends Job implements JobContract
     public function getRawBody()
     {
         return $this->payload;
+    }
+    
+    /**
+     * Process an exception that caused the job to fail.
+     *
+     * @param  \Throwable|null  $e
+     * @return void
+     */
+    protected function failed($e)
+    {
+        $payload = $this->payload();
+
+        [$class, $method] = JobName::parse($payload['job']);
+
+        if (class_exists($class) && method_exists($this->instance = $this->resolve($class), 'failed')) {
+            $this->instance->failed($payload['data'], $e);
+        }
     }
 }
