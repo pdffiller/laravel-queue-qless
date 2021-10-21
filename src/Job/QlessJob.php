@@ -133,7 +133,7 @@ class QlessJob extends Job implements JobContract
      */
     public function attempts()
     {
-        return $this->job->getRemaining();
+        return $this->job->getRetries();
     }
 
     /**
