@@ -208,7 +208,8 @@ class QlessJob extends Job implements JobContract
 
         [$class, $method] = JobName::parse($payload['job']);
 
-        if (class_exists($class) && method_exists($this->instance = $this->resolve($class), 'failed')) {
+        if (class_exists($class) && method_exists($class, 'failed')) {
+            $this->instance = $this->resolve($class);
             $this->instance->failed($payload['data'], $e);
         }
     }
