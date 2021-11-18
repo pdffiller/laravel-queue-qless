@@ -8,6 +8,7 @@ use LaravelQless\Contracts\JobHandler;
 use LaravelQless\Queue\QlessQueue;
 use LaravelQless\Tests\Helpers\ModifierTrait;
 use LaravelQless\Tests\Stub\JobStub;
+use LaravelQless\Tests\Stub\JobWithOutFailedStub;
 use Orchestra\Testbench\TestCase;
 use LaravelQless\Job\QlessJob;
 use Qless\Jobs\BaseJob;
@@ -96,6 +97,28 @@ class QlessJobTest extends TestCase
         $job->fire();
 
         self::assertNotNull($job->getResolvedJob());
+    }
+
+    public function testFireWithNonFailedClass(): void
+    {
+        $jobMock = $this->getJob();
+        $jobMock->method('getData')
+            ->willReturn(new JobData(['key' => 'value']));
+
+        $jobMock->method('__get')
+            ->with('failed')
+            ->willReturn(true);
+
+        $container = $this->getContainer();
+        $container->expects(self::never())->method('make')->with(JobWithOutFailedStub::class)
+            ->willReturn(new JobWithOutFailedStub());
+
+        $payload = json_encode(['job' => JobWithOutFailedStub::class . '@failed', 'data' => []]);
+
+        $job = (new QlessJob($container, $this->getQueue(), $this->getJobHandler(), $jobMock, $payload));
+        $job->fire();
+
+        self::assertNull($job->getResolvedJob());
     }
 
     public function testRelease(): void
