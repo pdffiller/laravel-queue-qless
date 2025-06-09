@@ -51,7 +51,7 @@ jobs:
 
       - name: Run phpcs
         run: |
-          ./vendor/bin/phpcs
+          ./vendor/bin/phpcs src
 
       - name: Run phpstan
         run: |
