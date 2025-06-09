@@ -47,7 +47,7 @@ jobs:
 
       - name: Configure Redis for CI
         run: |
-          apk add --no-cache redis
+          apt-get update && apt-get install -y redis-tools
           redis-cli -h redis -p 6379 CONFIG SET stop-writes-on-bgsave-error no
           redis-cli -h redis -p 6379 CONFIG SET save ""
 
