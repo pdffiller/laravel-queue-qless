@@ -41,7 +41,8 @@ abstract class AbstractJob implements QlessJob, ShouldQueue, Arrayable
      */
     public static function dispatchNow()
     {
-        return (new static(...func_get_args()))->completeSync();
+        $instance = new static(...func_get_args());
+        return $instance->completeSync();
     }
 
     /**
