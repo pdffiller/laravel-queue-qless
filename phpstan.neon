@@ -1,5 +1,7 @@
 parameters:
+  level: 3
   reportUnmatchedIgnoredErrors: false
   ignoreErrors:
       - '#Cannot access offset#'
-      - '#Method LaravelQless\\Queue\\QlessQueue::makePayload\(\) should return string but returns string|false.#'
+      - '#Method LaravelQless\\Queue\\QlessQueue::makePayload\(\) should return string but returns string\|false.#'
+      - '#Unsafe usage of new static\(\)#'

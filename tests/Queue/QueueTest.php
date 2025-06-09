@@ -185,8 +185,7 @@ class QueueTest extends TestCase
 
         $job = new Job(['dispatch' => 'work']);
 
-        $dispatch = dispatch($job)->onQueue($queueName)->onConnection('qless');
-        unset($dispatch);
+        $this->app['queue']->connection('qless')->push($job, '', $queueName);
 
         $queue = $this->getQueue();
 

@@ -163,6 +163,7 @@ class QlessQueue extends Queue implements QueueContract
     public function pop($queueName = null)
     {
         $connectionCount = $this->getClientCount();
+        $job = null;
 
         for ($i = 0; $i < $connectionCount; $i++) {
             $connection = $this->getNextConnection();
@@ -198,7 +199,7 @@ class QlessQueue extends Queue implements QueueContract
      * @param string|null $queueName
      * @return bool
      */
-    public function subscribe(string $topic, string $queueName = null): bool
+    public function subscribe(string $topic, ?string $queueName = null): bool
     {
         $queueName = $queueName ?? $this->defaultQueue;
 
@@ -217,7 +218,7 @@ class QlessQueue extends Queue implements QueueContract
      * @param string|null $queueName
      * @return bool
      */
-    public function unSubscribe(string $topic, string $queueName = null): bool
+    public function unSubscribe(string $topic, ?string $queueName = null): bool
     {
         $queueName = $queueName ?? $this->defaultQueue;
 
@@ -242,7 +243,7 @@ class QlessQueue extends Queue implements QueueContract
     {
         $topic = new Topic($topicName, $this->getRandomConnection());
 
-        $qlessOptions = $payloadData['data'][self::JOB_OPTIONS_KEY] ?? [];
+        $qlessOptions = $data[self::JOB_OPTIONS_KEY] ?? [];
         $options = array_merge($qlessOptions, $options);
 
         return $topic->put(
