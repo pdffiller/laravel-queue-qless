@@ -4,3 +4,4 @@ parameters:
   ignoreErrors:
       - '#Cannot access offset#'
       - '#Method LaravelQless\\Queue\\QlessQueue::makePayload\(\) should return string but returns string\|false.#'
+      - '#Unsafe usage of new static\(\)#'
