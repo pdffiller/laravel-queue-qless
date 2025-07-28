@@ -202,7 +202,7 @@ class QlessJob extends Job implements JobContract
      * @param  \Throwable|null  $e
      * @return void
      */
-    protected function failed($e)
+    public function failed($e)
     {
         $payload = $this->payload();
 
