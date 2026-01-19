@@ -29,7 +29,7 @@ class QlessQueue extends Queue implements QueueContract
     /**
      * @var array
      */
-    private $config;
+    protected $config;
 
     /** @var QlessConnectionHandler */
     private $clients;
