@@ -2,6 +2,7 @@
 
 namespace LaravelQless\Queue;
 
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\InvalidPayloadException;
 use Illuminate\Queue\Queue;
@@ -62,23 +63,24 @@ class QlessQueue extends Queue implements QueueContract
      * Push a raw payload onto the queue.
      *
      * @param string $payload
-     * @param string $queueName
+     * @param string $queue
      * @param array $options
+     *
      * @return mixed
      */
-    public function pushRaw($payload, $queueName = null, array $options = [])
+    public function pushRaw($payload, $queue = null, array $options = [])
     {
         $payloadData = array_merge(json_decode($payload, true), $options);
 
-        $queueName = $queueName ?? $this->defaultQueue;
+        $queue = $queue ?? $this->defaultQueue;
 
-        $queue = $this->getRandomConnection()->queues[$queueName];
+        $queueObj = $this->getRandomConnection()->queues[$queue];
 
         $qlessOptions = $payloadData['data'][self::JOB_OPTIONS_KEY] ?? [];
 
         $options = array_merge($qlessOptions, $options);
 
-        return $queue->put(
+        return $queueObj->put(
             $payloadData['job'],
             $payloadData['data'],
             $options['jid'] ?? null,
@@ -95,12 +97,13 @@ class QlessQueue extends Queue implements QueueContract
      *
      * @param string|object $job
      * @param mixed $data
-     * @param string $queueName
+     * @param string $queue
+     *
      * @return mixed
      */
-    public function push($job, $data = '', $queueName = null)
+    public function push($job, $data = '', $queue = null)
     {
-        return $this->pushRaw($this->makePayload($job, (array)$data), $queueName);
+        return $this->pushRaw($this->makePayload($job, (array)$data), $queue);
     }
 
     /**
@@ -109,17 +112,18 @@ class QlessQueue extends Queue implements QueueContract
      * @param \DateTimeInterface|\DateInterval|int $delay
      * @param string|object $job
      * @param mixed $data
-     * @param string $queueName
+     * @param string $queue
+     *
      * @return mixed
      */
-    public function later($delay, $job, $data = '', $queueName = null)
+    public function later($delay, $job, $data = '', $queue = null)
     {
         $options = $data[self::JOB_OPTIONS_KEY] ?? [];
         $options = array_merge($options, ['timeout' => $delay]);
 
         return $this->pushRaw(
             $this->makePayload($job, $data, $options),
-            $queueName,
+            $queue,
             $options
         );
     }
@@ -130,18 +134,17 @@ class QlessQueue extends Queue implements QueueContract
      * @param int $interval
      * @param string $job
      * @param array $data
-     * @param string $queueName
+     * @param string|null $queue
      * @return string
      */
-    public function recur(int $interval, string $job, array $data, ?string $queueName = null): string
+    public function recur(int $interval, string $job, array $data, ?string $queue = null): string
     {
-        /** @var \Qless\Queues\Queue $queue */
-        $queue = $this->getNextConnection()->queues[$queueName];
+        $queueObj = $this->getNextConnection()->queues[$queue];
 
         $options = $data[self::JOB_OPTIONS_KEY] ?? [];
         $options = array_merge($options, ['interval' => $interval]);
 
-        return $queue->recur(
+        return $queueObj->recur(
             $job,
             $data,
             $options['interval'],
@@ -157,21 +160,23 @@ class QlessQueue extends Queue implements QueueContract
     /**
      * Pop the next job off of the queue.
      *
-     * @param string $queueName
+     * @param string $queue
+     *
      * @return QlessJob|null
+     * @throws BindingResolutionException
      */
-    public function pop($queueName = null)
+    public function pop($queue = null)
     {
         $connectionCount = $this->getClientCount();
 
         for ($i = 0; $i < $connectionCount; $i++) {
             $connection = $this->getNextConnection();
 
-            /** @var \Qless\Queues\Queue $queue */
-            $queue = $connection->queues[$queueName];
+            /** @var \Qless\Queues\Queue $queueObj */
+            $queueObj = $connection->queues[$queue];
 
             /** @var \Qless\Jobs\BaseJob $job */
-            $job = $queue->pop(self::WORKER_PREFIX . $connection->getWorkerName());
+            $job = $queueObj->pop(self::WORKER_PREFIX . $connection->getWorkerName());
 
             if ($job) {
                 break;
