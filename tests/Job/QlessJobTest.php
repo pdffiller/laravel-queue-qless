@@ -156,12 +156,15 @@ class QlessJobTest extends TestCase
     {
         $job = $this->getJob();
         $job->expects(self::once())
+            ->method('getRetries')
+            ->willReturn(5);
+        $job->expects(self::once())
             ->method('getRemaining')
             ->willReturn(3);
 
         $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $job, ''));
 
-        self::assertEquals($job->attempts(), 3);
+        self::assertEquals(3, $job->attempts());
     }
 
     public function testMaxTries(): void
@@ -234,9 +237,7 @@ class QlessJobTest extends TestCase
      */
     private function getContainer()
     {
-        return $this->getMockBuilder(Container::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        return $this->createMock(Container::class);
     }
 
     /**
@@ -244,9 +245,7 @@ class QlessJobTest extends TestCase
      */
     private function getQueue()
     {
-        return $this->getMockBuilder(QlessQueue::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        return $this->createMock(QlessQueue::class);
     }
 
     /**
@@ -254,9 +253,7 @@ class QlessJobTest extends TestCase
      */
     private function getJobHandler()
     {
-        return $this->getMockBuilder(JobHandler::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        return $this->createMock(JobHandler::class);
     }
 
     /**
@@ -264,9 +261,7 @@ class QlessJobTest extends TestCase
      */
     private function getJob()
     {
-        return $this->getMockBuilder(BaseJob::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        return $this->createMock(BaseJob::class);
     }
 
 }

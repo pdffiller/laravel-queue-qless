@@ -2,9 +2,7 @@
 
 namespace LaravelQless\Tests;
 
-use Illuminate\Container\Container;
 use Illuminate\Queue\QueueManager;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use LaravelQless\LaravelQlessServiceProvider;
 use LaravelQless\Queue\QlessConnector;
@@ -33,8 +31,6 @@ class ServiceProviderTest extends TestCase
 
         $app = $this->app;
         $app['queue'] = $queueMock;
-
-        $app['events'] = $this->createMock(Event::class);
 
         $providerMock = new LaravelQlessServiceProvider($app);
         $providerMock->boot();
