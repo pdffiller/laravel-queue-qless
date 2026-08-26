@@ -139,11 +139,17 @@ class QlessJob extends Job implements JobContract
     /**
      * Get the number of times to attempt a job.
      *
+     * Qless "retries" is the number of retries AFTER the first run, so the
+     * total attempt budget is retries + 1. Laravel's worker fails a job
+     * before running it when attempts() > maxTries(). Returning bare
+     * retries here would cut off the final attempt, and job code that
+     * reacts to getRemaining() === 0 would never run.
+     *
      * @return int|null
      */
     public function maxTries()
     {
-        return $this->job->getRetries();
+        return $this->job->getRetries() + 1;
     }
 
     /**
