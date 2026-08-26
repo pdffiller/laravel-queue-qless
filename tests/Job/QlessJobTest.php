@@ -176,7 +176,26 @@ class QlessJobTest extends TestCase
 
         $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $job, ''));
 
-        self::assertEquals($job->maxTries(), 10);
+        self::assertEquals(11, $job->maxTries());
+    }
+
+    /**
+     * The last attempt (remaining = 0) must stay inside the maxTries budget.
+     * Laravel's worker fails a job without running it when attempts() > maxTries(),
+     * so attempts() on the last attempt must equal maxTries(), never exceed it.
+     */
+    public function testFinalAttemptDoesNotExceedMaxTries(): void
+    {
+        $job = $this->getJob();
+        $job->method('getRetries')
+            ->willReturn(2);
+        $job->method('getRemaining')
+            ->willReturn(0);
+
+        $job = (new QlessJob($this->getContainer(), $this->getQueue(), $this->getJobHandler(), $job, ''));
+
+        self::assertEquals(3, $job->attempts());
+        self::assertEquals($job->maxTries(), $job->attempts());
     }
 
     public function testTimeout(): void
