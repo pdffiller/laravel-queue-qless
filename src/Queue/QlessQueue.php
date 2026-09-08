@@ -60,6 +60,78 @@ class QlessQueue extends Queue implements QueueContract
     }
 
     /**
+     * Get the number of jobs waiting to be processed.
+     *
+     * @param \UnitEnum|string|null $queue
+     * @return int
+     */
+    public function pendingSize($queue = null): int
+    {
+        return $this->getQueueCount($queue, 'waiting');
+    }
+
+    /**
+     * Get the number of delayed (scheduled) jobs.
+     *
+     * @param string|null $queue
+     * @return int
+     */
+    public function delayedSize($queue = null): int
+    {
+        return $this->getQueueCount($queue, 'scheduled');
+    }
+
+    /**
+     * Get the number of jobs currently reserved (running) by workers.
+     *
+     * @param string|null $queue
+     * @return int
+     */
+    public function reservedSize($queue = null): int
+    {
+        return $this->getQueueCount($queue, 'running');
+    }
+
+    /**
+     * Qless does not expose the creation time of individual pending jobs.
+     *
+     * @param \UnitEnum|string|null $queue
+     * @return int|null
+     */
+    public function creationTimeOfOldestPendingJob($queue = null): ?int
+    {
+        return null;
+    }
+
+    /**
+     * @param \UnitEnum|string|null $queue
+     * @param string $key
+     * @return int
+     */
+    private function getQueueCount($queue, string $key): int
+    {
+        if ($queue instanceof \UnitEnum) {
+            $queue = $queue->value;
+        }
+
+        $queue = $queue ?? $this->defaultQueue ?? '';
+        $queue = (string) $queue;
+
+        $count = 0;
+
+        foreach ($this->getAllConnections() as $connection) {
+            foreach ($connection->getQueues()->getCounts() as $stats) {
+                if (($stats['name'] ?? null) === $queue) {
+                    $count += (int) ($stats[$key] ?? 0);
+                    break;
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
      * Push a raw payload onto the queue.
      *
      * @param string $payload
