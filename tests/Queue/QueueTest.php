@@ -152,6 +152,80 @@ class QueueTest extends TestCase
     /**
      * @throws \Exception
      */
+    public function testPendingSize()
+    {
+        $queueName = Str::random();
+
+        $queue = $this->getQueue();
+
+        $this->assertEquals(0, $queue->pendingSize($queueName));
+
+        $queue->push(Job::class, ['firstKey' => 'firstValue'], $queueName);
+
+        $this->assertEquals(1, $queue->pendingSize($queueName));
+
+        $job = $queue->pop($queueName);
+        $job->fire();
+
+        $this->assertEquals(0, $queue->pendingSize($queueName));
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function testReservedSize()
+    {
+        $queueName = Str::random();
+
+        $queue = $this->getQueue();
+
+        $queue->push(Job::class, ['firstKey' => 'firstValue'], $queueName);
+
+        $this->assertEquals(0, $queue->reservedSize($queueName));
+
+        $job = $queue->pop($queueName);
+
+        $this->assertEquals(1, $queue->reservedSize($queueName));
+
+        $job->fire();
+
+        $this->assertEquals(0, $queue->reservedSize($queueName));
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function testDelayedSize()
+    {
+        $queueName = Str::random();
+
+        $queue = $this->getQueue();
+
+        $this->assertEquals(0, $queue->delayedSize($queueName));
+
+        $queue->push(
+            Job::class,
+            [
+                QlessQueue::JOB_OPTIONS_KEY => ['delay' => 60],
+                'firstKey' => 'firstValue',
+            ],
+            $queueName
+        );
+
+        $this->assertEquals(1, $queue->delayedSize($queueName));
+        $this->assertEquals(0, $queue->pendingSize($queueName));
+    }
+
+    public function testCreationTimeOfOldestPendingJob()
+    {
+        $queue = $this->getQueue();
+
+        $this->assertNull($queue->creationTimeOfOldestPendingJob(Str::random()));
+    }
+
+    /**
+     * @throws \Exception
+     */
     public function testJobOptions()
     {
         $queueName = Str::random();
